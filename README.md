@@ -1,7 +1,7 @@
 # 어니스트서울 나석키 전환 요청 시스템
 
 매장 직원이 스마트폰으로 거래를 등록하면 아지트에 자동 포스팅되고,
-안은정 팀장이 관리자 대시보드에서 월별 조회 후 PDF를 출력하는 웹앱입니다.
+백화점 영업팀장이 관리자 대시보드에서 월별 조회 후 PDF를 출력하는 웹앱입니다.
 
 ---
 
@@ -13,7 +13,7 @@ honest-seoul-app/
 ├── requirements.txt        # Python 패키지
 ├── templates/
 │   ├── store.html          # 매장 직원용 모바일 폼
-│   ├── manager.html        # 안은정 팀장 관리자 대시보드
+│   ├── manager.html        # 백화점 영업팀장 관리자 대시보드
 │   └── print_pdf.html      # PDF 출력 템플릿
 ├── uploads/                # 업로드된 이미지 저장 (자동 생성)
 └── transactions.db         # SQLite DB (자동 생성)
@@ -90,7 +90,7 @@ honest-seoul-app/
 8. 팀장에게 전달할 메모 입력 (선택, PDF에 미포함)
 9. **거래 등록** 버튼 → 아지트 자동 포스팅 + 서버 저장
 
-### 안은정 팀장 (PC)
+### 백화점 영업팀장 (PC)
 
 접속 URL: `https://honest-seoul-app.onrender.com/manager`
 
