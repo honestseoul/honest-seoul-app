@@ -237,8 +237,12 @@
         <input type="text" id="edit-order-num">
       </div>
       <div class="modal-field">
-        <label>등급/유형</label>
+        <label>등급/유형①</label>
         <input type="text" id="edit-grade">
+      </div>
+      <div class="modal-field">
+        <label>등급/유형②</label>
+        <input type="text" id="edit-grade2" placeholder="귀걸이 등 2개일 때">
       </div>
       <div class="modal-field">
         <label>감정원</label>
@@ -256,6 +260,10 @@
         <label>합계 (자동계산)</label>
         <input type="text" id="edit-total" readonly style="background:#f8f8f8;color:#555;font-weight:600">
         <span class="auto-note">다이아나석 + 세팅비 자동 계산</span>
+      </div>
+      <div class="modal-field">
+        <label>선금</label>
+        <input type="text" id="edit-prepay">
       </div>
       <div class="modal-field">
         <label>잔금</label>
@@ -364,7 +372,7 @@ function render() {
       <td style="white-space:nowrap">${tx.date}</td>
       <td style="white-space:nowrap">${tx.store}</td>
       <td>${tx.customer_name||'-'}</td>
-      <td>${tx.grade}</td>
+      <td>${tx.grade}${tx.grade2 ? '<br><small style="color:#999">②&nbsp;'+tx.grade2+'</small>' : ''}</td>
       <td class="num">${fmt(tx.diamond_amount)}</td>
       <td class="num">${fmt(tx.setting_fee)}</td>
       <td class="num" style="font-weight:700">${fmt(tx.total_amount)}</td>
@@ -432,10 +440,12 @@ function openEditModal(tx) {
   document.getElementById('edit-customer').value= tx.customer_name||'';
   document.getElementById('edit-order-num').value= tx.order_number||'';
   document.getElementById('edit-grade').value   = tx.grade;
+  document.getElementById('edit-grade2').value  = tx.grade2||'';
   document.getElementById('edit-gemlab').value  = tx.gem_lab||'IGI';
   document.getElementById('edit-diamond').value = tx.diamond_amount;
   document.getElementById('edit-setting').value = tx.setting_fee;
   document.getElementById('edit-total').value   = fmt(tx.total_amount);
+  document.getElementById('edit-prepay').value  = tx.prepay||'-';
   document.getElementById('edit-balance').value = tx.balance||'-';
   document.getElementById('edit-igi1').value    = tx.igi_number||'';
   document.getElementById('edit-igi2').value    = tx.igi_number2||'';
@@ -461,9 +471,11 @@ async function saveEdit() {
     customer_name:  document.getElementById('edit-customer').value,
     order_number:   document.getElementById('edit-order-num').value,
     grade:          document.getElementById('edit-grade').value,
+    grade2:         document.getElementById('edit-grade2').value,
     gem_lab:        document.getElementById('edit-gemlab').value,
     diamond_amount: parseInt(document.getElementById('edit-diamond').value)||0,
     setting_fee:    parseInt(document.getElementById('edit-setting').value)||0,
+    prepay:         document.getElementById('edit-prepay').value,
     balance:        document.getElementById('edit-balance').value,
     igi_number:     document.getElementById('edit-igi1').value,
     igi_number2:    document.getElementById('edit-igi2').value,

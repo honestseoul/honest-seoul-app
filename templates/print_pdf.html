@@ -388,7 +388,7 @@
         <!-- Row 3: 금액 값 -->
         <tr>
           <td class="val num" colspan="2">${fmt(tx.total_amount)}</td>
-          <td class="val num">${fmt(tx.total_amount)}</td>
+          <td class="val num">${tx.prepay && tx.prepay !== '-' ? tx.prepay : fmt(tx.total_amount)}</td>
           <td class="val num">${tx.balance && tx.balance !== '-' ? tx.balance : '-'}</td>
         </tr>
 
@@ -405,7 +405,7 @@
           <td class="lbl">감정원</td>
           <td class="val">${tx.gem_lab || 'IGI'}</td>
           <td class="lbl">등급 및 유형</td>
-          <td class="val">${tx.grade || '-'}</td>
+          <td class="val">${tx.grade || '-'}${tx.grade2 ? '<br><span style="font-size:11px;color:#555;">②&nbsp;' + tx.grade2 + '</span>' : ''}</td>
         </tr>
 
         <!-- Row 6: M/G 헤더 -->

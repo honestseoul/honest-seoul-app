@@ -34,6 +34,8 @@ def init_db():
                 total_amount    INTEGER NOT NULL,
                 gem_lab         TEXT    DEFAULT 'IGI',
                 grade           TEXT    NOT NULL,
+                grade2          TEXT,
+                prepay          TEXT    DEFAULT '-',
                 balance         TEXT    DEFAULT '-',
                 igi_number      TEXT,
                 igi_number2     TEXT,
@@ -78,7 +80,8 @@ def post_to_agit(tx):
         f"- 고객명: {tx.get('customer_name') or '-'}\n"
         f"- 주문번호: {tx.get('order_number') or '-'}\n"
         f"- 거래금액: {int(tx['total_amount']):,}원\n"
-        f"- 등급: {tx['grade']}"
+        f"- 등급①: {tx['grade']}"
+        + (f"\n- 등급②: {tx['grade2']}" if tx.get('grade2') else "")
     )
     try:
         requests.post(AGIT_WEBHOOK_URL, json={'text': text}, timeout=5)
@@ -128,15 +131,16 @@ def create_transaction():
             INSERT INTO transactions
               (store, date, customer_name, order_number,
                diamond_amount, setting_fee, total_amount,
-               gem_lab, grade, balance,
+               gem_lab, grade, grade2, prepay, balance,
                igi_number, igi_number2,
                cert1_file, cert2_file, receipt_file, order_file, memo)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
         ''', (
             f.get('store'), f.get('date'),
             f.get('customer_name'), f.get('order_number'),
             diamond, setting, total,
-            f.get('gem_lab', 'IGI'), f.get('grade'), f.get('balance', '-'),
+            f.get('gem_lab', 'IGI'), f.get('grade'), f.get('grade2', ''),
+            f.get('prepay', '-'), f.get('balance', '-'),
             f.get('igi_number'), f.get('igi_number2'),
             cert1, cert2, receipt, order,
             f.get('memo', '')
@@ -190,7 +194,8 @@ def update_transaction(tx_id):
     data = request.get_json()
     allowed = ['store','date','customer_name','order_number',
                'diamond_amount','setting_fee','total_amount',
-               'gem_lab','grade','balance','igi_number','igi_number2','memo']
+               'gem_lab','grade','grade2','prepay','balance',
+               'igi_number','igi_number2','memo']
     updates = {k: v for k, v in data.items() if k in allowed}
     if not updates:
         return jsonify({'error': 'No valid fields'}), 400

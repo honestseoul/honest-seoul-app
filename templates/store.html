@@ -32,9 +32,31 @@
       position: sticky;
       top: 0;
       z-index: 10;
+      display: flex;
+      align-items: center;
+      gap: 12px;
     }
-    .header h1 { font-size: 18px; font-weight: 700; }
-    .header p  { font-size: 13px; color: var(--sub); margin-top: 2px; }
+    .header-text h1 { font-size: 18px; font-weight: 700; }
+    .header-text p  { font-size: 13px; color: var(--sub); margin-top: 2px; }
+    .back-btn {
+      background: none; border: none;
+      font-size: 24px; color: var(--blue);
+      cursor: pointer; padding: 0 4px;
+      line-height: 1;
+    }
+
+    /* ── STEP 뱃지 ── */
+    .step-badge {
+      display: inline-block;
+      background: var(--blue);
+      color: white;
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 20px;
+      padding: 2px 10px;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
 
     /* ── SECTIONS ── */
     .section {
@@ -65,12 +87,10 @@
     .field label {
       font-size: 15px;
       color: var(--text);
-      min-width: 90px;
+      min-width: 95px;
       flex-shrink: 0;
     }
-    .field input,
-    .field select,
-    .field textarea {
+    .field input, .field select, .field textarea {
       flex: 1;
       font-size: 15px;
       font-family: inherit;
@@ -89,17 +109,11 @@
       padding: 12px 0;
       line-height: 1.4;
     }
-    .field .unit {
-      font-size: 13px;
-      color: var(--sub);
-      margin-left: 4px;
-    }
-    .field.auto-field input {
-      color: var(--blue);
-      font-weight: 600;
-    }
+    .field .unit { font-size: 13px; color: var(--sub); margin-left: 4px; }
+    .field.auto-field input { color: var(--blue); font-weight: 600; }
+    .field.ocr-filled input { color: var(--green); }
 
-    /* ── CALENDAR WIDGET ── */
+    /* ── CALENDAR ── */
     .cal-backdrop {
       display: none;
       position: fixed; inset: 0;
@@ -115,10 +129,7 @@
       padding: 0 0 34px;
       animation: slideUp .25s ease;
     }
-    @keyframes slideUp {
-      from { transform: translateY(100%); }
-      to   { transform: translateY(0); }
-    }
+    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
     .cal-header {
       display: flex;
       align-items: center;
@@ -130,14 +141,11 @@
       font-size: 20px; cursor: pointer;
       color: var(--blue); padding: 4px 10px;
     }
-    .cal-month-label {
-      font-size: 16px; font-weight: 700;
-    }
+    .cal-month-label { font-size: 16px; font-weight: 700; }
     .cal-done-btn {
       background: none; border: none;
       font-size: 15px; font-weight: 700;
-      color: var(--blue); cursor: pointer;
-      padding: 4px 4px;
+      color: var(--blue); cursor: pointer; padding: 4px;
     }
     .cal-grid {
       display: grid;
@@ -146,37 +154,25 @@
       padding: 0 12px;
     }
     .cal-dayname {
-      text-align: center;
-      font-size: 12px;
-      color: var(--sub);
-      padding: 6px 0;
-      font-weight: 600;
+      text-align: center; font-size: 12px;
+      color: var(--sub); padding: 6px 0; font-weight: 600;
     }
     .cal-dayname:first-child { color: #FF3B30; }
     .cal-dayname:last-child  { color: var(--blue); }
     .cal-day {
       aspect-ratio: 1;
       display: flex; align-items: center; justify-content: center;
-      border-radius: 50%;
-      font-size: 14px;
-      cursor: pointer;
-      transition: background .1s;
-      position: relative;
+      border-radius: 50%; font-size: 14px; cursor: pointer;
+      transition: background .1s; position: relative;
     }
     .cal-day:empty { cursor: default; }
     .cal-day.today::after {
-      content: '';
-      position: absolute;
+      content: ''; position: absolute;
       bottom: 4px; left: 50%; transform: translateX(-50%);
       width: 4px; height: 4px;
-      background: var(--blue);
-      border-radius: 50%;
+      background: var(--blue); border-radius: 50%;
     }
-    .cal-day.selected {
-      background: var(--blue);
-      color: white;
-      font-weight: 700;
-    }
+    .cal-day.selected { background: var(--blue); color: white; font-weight: 700; }
     .cal-day.selected::after { background: white; }
     .cal-day:not(:empty):hover { background: #F0F0F5; }
     .cal-day.selected:hover { background: var(--blue); }
@@ -184,12 +180,64 @@
     .cal-day.sat { color: var(--blue); }
     .cal-day.selected.sun,
     .cal-day.selected.sat { color: white; }
-    .cal-day.other-month { color: #C7C7CC; }
 
-    /* ── OCR 로딩 배너 ── */
+    /* ── 이미지 업로드 ── */
+    .upload-area {
+      margin: 0 16px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .upload-slot {
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      aspect-ratio: 4/3;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      background: var(--card);
+      transition: border-color .15s;
+    }
+    .upload-slot.has-img { border-style: solid; border-color: var(--green); }
+    .upload-slot .slot-label { font-size: 12px; color: var(--sub); font-weight: 600; }
+    .upload-slot .slot-icon  { font-size: 28px; }
+    .upload-slot .slot-hint  { font-size: 10px; color: #C7C7CC; text-align: center; line-height: 1.3; }
+    .upload-slot .preview-img {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      object-fit: cover;
+    }
+    .upload-slot .check-badge {
+      position: absolute; top: 6px; right: 6px;
+      background: var(--green); color: white;
+      border-radius: 50%; width: 22px; height: 22px;
+      font-size: 13px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .upload-slot .ocr-badge {
+      position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%);
+      background: rgba(0,0,0,0.55); color: white;
+      border-radius: 10px; font-size: 10px;
+      padding: 2px 7px; white-space: nowrap;
+    }
+    input[type="file"] { display: none; }
+
+    .upload-label {
+      font-size: 12px; font-weight: 700;
+      color: var(--sub); text-transform: uppercase;
+      letter-spacing: .05em;
+      margin: 20px 16px 8px;
+    }
+
+    /* ── OCR 배너 ── */
     .ocr-banner {
       display: none;
-      margin: 8px 16px 0;
+      margin: 12px 16px 0;
       background: #FFF9C4;
       border: 1px solid #F0C040;
       border-radius: 10px;
@@ -209,81 +257,28 @@
       flex-shrink: 0;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .ocr-result-tag {
-      display: inline-block;
-      font-size: 11px;
-      background: #E8F5E9;
-      color: #2E7D32;
-      border-radius: 4px;
-      padding: 1px 5px;
-      margin-left: 4px;
-      vertical-align: middle;
-    }
 
-    /* ── 이미지 업로드 ── */
-    .upload-area {
-      margin: 0 16px;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-    .upload-area.single { grid-template-columns: 1fr; }
-    .upload-slot {
-      border: 2px dashed var(--border);
-      border-radius: 12px;
-      aspect-ratio: 4/3;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      cursor: pointer;
-      position: relative;
-      overflow: hidden;
-      background: var(--card);
-      transition: border-color .15s;
-    }
-    .upload-slot.has-img { border-style: solid; border-color: var(--green); }
-    .upload-slot .slot-label {
-      font-size: 12px;
-      color: var(--sub);
-      font-weight: 600;
-    }
-    .upload-slot .slot-icon { font-size: 28px; }
-    .upload-slot .preview-img {
-      position: absolute; inset: 0;
-      width: 100%; height: 100%;
-      object-fit: cover;
-    }
-    .upload-slot .check-badge {
-      position: absolute;
-      top: 6px; right: 6px;
-      background: var(--green);
-      color: white;
-      border-radius: 50%;
-      width: 22px; height: 22px;
-      font-size: 13px;
-      display: flex; align-items: center; justify-content: center;
-    }
-    input[type="file"] { display: none; }
-
-    /* ── 제출 버튼 ── */
+    /* ── 버튼 ── */
     .submit-wrap { margin: 20px 16px 0; }
     .submit-btn {
-      width: 100%;
-      padding: 16px;
-      background: var(--blue);
-      color: white;
-      border: none;
-      border-radius: 14px;
-      font-size: 17px;
-      font-weight: 700;
-      font-family: inherit;
-      cursor: pointer;
+      width: 100%; padding: 16px;
+      background: var(--blue); color: white;
+      border: none; border-radius: 14px;
+      font-size: 17px; font-weight: 700;
+      font-family: inherit; cursor: pointer;
       transition: opacity .15s;
     }
     .submit-btn:active { opacity: .8; }
     .submit-btn:disabled { opacity: .4; cursor: not-allowed; }
+    .next-btn {
+      width: 100%; padding: 16px;
+      background: var(--text); color: white;
+      border: none; border-radius: 14px;
+      font-size: 17px; font-weight: 700;
+      font-family: inherit; cursor: pointer;
+      transition: opacity .15s;
+    }
+    .next-btn:active { opacity: .8; }
 
     /* ── 성공 화면 ── */
     #success-screen {
@@ -291,176 +286,193 @@
       position: fixed; inset: 0;
       background: var(--bg);
       flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 16px;
-      z-index: 200;
+      align-items: center; justify-content: center;
+      gap: 16px; z-index: 200;
     }
     #success-screen.show { display: flex; }
-    .success-icon { font-size: 72px; }
+    .success-icon  { font-size: 72px; }
     .success-title { font-size: 22px; font-weight: 700; }
     .success-sub   { font-size: 15px; color: var(--sub); text-align: center; line-height: 1.5; }
     .success-new-btn {
-      margin-top: 12px;
-      padding: 14px 32px;
-      background: var(--blue);
-      color: white;
-      border: none;
-      border-radius: 14px;
-      font-size: 16px;
-      font-weight: 700;
-      font-family: inherit;
-      cursor: pointer;
+      margin-top: 12px; padding: 14px 32px;
+      background: var(--blue); color: white;
+      border: none; border-radius: 14px;
+      font-size: 16px; font-weight: 700;
+      font-family: inherit; cursor: pointer;
     }
 
-    /* ── 섹션 레이블 간격 ── */
-    .upload-label {
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--sub);
-      text-transform: uppercase;
-      letter-spacing: .05em;
-      margin: 20px 16px 8px;
-    }
+    /* ── 단계 전환 ── */
+    #step2 { display: none; }
   </style>
 </head>
 <body>
 
-<div class="header">
-  <h1>나석키 전환 요청</h1>
-  <p>어니스트서울 백화점 매장용</p>
-</div>
-
-<!-- ── 거래 정보 ── -->
-<div class="section">
-  <div class="section-title">거래 정보</div>
-
-  <div class="field">
-    <label>점포</label>
-    <select id="store">
-      <option value="현대백화점 판교점">현대백화점 판교점</option>
-      <option value="롯데백화점 본점">롯데백화점 본점</option>
-      <option value="롯데백화점 잠실점">롯데백화점 잠실점</option>
-    </select>
+<!-- ═══════════════════════════════════════
+     STEP 1 — 이미지 업로드
+═══════════════════════════════════════ -->
+<div id="step1">
+  <div class="header">
+    <div class="header-text">
+      <h1>나석키 전환 요청 <span class="step-badge">1단계</span></h1>
+      <p>이미지를 먼저 업로드해주세요</p>
+    </div>
   </div>
 
-  <div class="field" id="date-field" style="cursor:pointer" onclick="openCal()">
-    <label>판매날짜</label>
-    <input type="text" id="date-display" readonly placeholder="날짜 선택"
-           style="cursor:pointer; pointer-events:none;">
+  <!-- 감정서 -->
+  <div class="upload-label">감정서 (IGI)</div>
+  <div class="upload-area">
+    <div class="upload-slot" id="slot-cert1" onclick="document.getElementById('file-cert1').click()">
+      <div class="slot-icon">📄</div>
+      <div class="slot-label">감정서 ①</div>
+      <div class="slot-hint">업로드 시 등급·번호<br>자동 인식</div>
+    </div>
+    <div class="upload-slot" id="slot-cert2" onclick="document.getElementById('file-cert2').click()">
+      <div class="slot-icon">📄</div>
+      <div class="slot-label">감정서 ②</div>
+      <div class="slot-hint">귀걸이 등<br>2개일 때</div>
+    </div>
   </div>
 
-  <div class="field">
-    <label>고객명</label>
-    <input type="text" id="customer_name" placeholder="홍길동" autocomplete="off">
+  <!-- 영수증 / 주문서 -->
+  <div class="upload-label">영수증 / 주문서</div>
+  <div class="upload-area">
+    <div class="upload-slot" id="slot-receipt" onclick="document.getElementById('file-receipt').click()">
+      <div class="slot-icon">🧾</div>
+      <div class="slot-label">고객 영수증</div>
+    </div>
+    <div class="upload-slot" id="slot-order" onclick="document.getElementById('file-order').click()">
+      <div class="slot-icon">📋</div>
+      <div class="slot-label">주문서</div>
+      <div class="slot-hint">업로드 시 날짜·고객명·<br>주문번호 자동 인식</div>
+    </div>
   </div>
 
-  <div class="field">
-    <label>주문번호</label>
-    <input type="text" id="order_number" placeholder="20260308-0000073" autocomplete="off">
-  </div>
-</div>
+  <!-- 파일 인풋 -->
+  <input type="file" id="file-cert1"   accept="image/*" onchange="onFileSelect(this, 'cert1')">
+  <input type="file" id="file-cert2"   accept="image/*" onchange="onFileSelect(this, 'cert2')">
+  <input type="file" id="file-receipt" accept="image/*" onchange="onFileSelect(this, 'receipt')">
+  <input type="file" id="file-order"   accept="image/*" onchange="onFileSelect(this, 'order')">
 
-<!-- ── 금액 정보 ── -->
-<div class="section" style="margin-top:16px">
-  <div class="section-title">금액 정보</div>
-
-  <div class="field">
-    <label>다이아나석</label>
-    <input type="number" id="diamond_amount" placeholder="0" inputmode="numeric" oninput="calcTotal()">
-    <span class="unit">원</span>
-  </div>
-  <div class="field">
-    <label>세팅비</label>
-    <input type="number" id="setting_fee" placeholder="0" inputmode="numeric" oninput="calcTotal()">
-    <span class="unit">원</span>
-  </div>
-  <div class="field auto-field">
-    <label>합계</label>
-    <input type="text" id="total_display" readonly placeholder="자동계산">
-    <span class="unit">원</span>
-  </div>
-  <div class="field">
-    <label>잔금</label>
-    <input type="text" id="balance" placeholder="-" value="-">
-  </div>
-</div>
-
-<!-- ── 다이아몬드 ── -->
-<div class="section" style="margin-top:16px">
-  <div class="section-title">다이아몬드</div>
-
-  <div class="field">
-    <label>감정원</label>
-    <input type="text" id="gem_lab" value="IGI">
-  </div>
-  <div class="field">
-    <label>등급/유형</label>
-    <input type="text" id="grade" placeholder="예: 1.04ct D VVS2 IDEAL">
+  <!-- OCR 배너 -->
+  <div class="ocr-banner" id="ocr-banner">
+    <div class="ocr-spinner" id="ocr-spinner"></div>
+    <span id="ocr-msg">이미지 인식 중...</span>
   </div>
 
-  <div class="field">
-    <label>IGI 번호①</label>
-    <input type="text" id="igi_number" placeholder="예: 639410123" inputmode="numeric">
-  </div>
-  <div class="field">
-    <label>IGI 번호②</label>
-    <input type="text" id="igi_number2" placeholder="귀걸이 등 2개일 때" inputmode="numeric">
+  <!-- 다음 단계 버튼 -->
+  <div class="submit-wrap">
+    <button class="next-btn" onclick="goStep2()">다음 단계 →</button>
   </div>
 </div>
 
-<!-- ── 팀장 메모 ── -->
-<div class="section" style="margin-top:16px">
-  <div class="section-title">팀장에게 메모</div>
-  <div class="field" style="align-items:flex-start; padding:0 16px">
-    <textarea id="memo" rows="3" placeholder="PDF에는 포함되지 않습니다. 특이사항이나 요청사항을 남겨주세요."></textarea>
+
+<!-- ═══════════════════════════════════════
+     STEP 2 — 정보 확인 및 입력
+═══════════════════════════════════════ -->
+<div id="step2">
+  <div class="header">
+    <button class="back-btn" onclick="goStep1()">‹</button>
+    <div class="header-text">
+      <h1>나석키 전환 요청 <span class="step-badge">2단계</span></h1>
+      <p>정보를 확인하고 수정해주세요</p>
+    </div>
+  </div>
+
+  <!-- 거래 정보 -->
+  <div class="section">
+    <div class="section-title">거래 정보</div>
+    <div class="field">
+      <label>점포</label>
+      <select id="store">
+        <option value="현대백화점 판교점">현대백화점 판교점</option>
+        <option value="롯데백화점 본점">롯데백화점 본점</option>
+        <option value="롯데백화점 잠실점">롯데백화점 잠실점</option>
+      </select>
+    </div>
+    <div class="field" id="date-field" style="cursor:pointer" onclick="openCal()">
+      <label>판매날짜</label>
+      <input type="text" id="date-display" readonly placeholder="날짜 선택"
+             style="cursor:pointer; pointer-events:none;">
+    </div>
+    <div class="field" id="field-customer">
+      <label>고객명</label>
+      <input type="text" id="customer_name" placeholder="홍길동" autocomplete="off">
+    </div>
+    <div class="field" id="field-order-num">
+      <label>주문번호</label>
+      <input type="text" id="order_number" placeholder="20260308-0000073" autocomplete="off">
+    </div>
+  </div>
+
+  <!-- 금액 정보 -->
+  <div class="section" style="margin-top:16px">
+    <div class="section-title">금액 정보</div>
+    <div class="field">
+      <label>다이아나석</label>
+      <input type="number" id="diamond_amount" placeholder="0" inputmode="numeric" oninput="calcTotal()">
+      <span class="unit">원</span>
+    </div>
+    <div class="field">
+      <label>세팅비</label>
+      <input type="number" id="setting_fee" placeholder="0" inputmode="numeric" oninput="calcTotal()">
+      <span class="unit">원</span>
+    </div>
+    <div class="field auto-field">
+      <label>합계</label>
+      <input type="text" id="total_display" readonly placeholder="자동계산">
+      <span class="unit">원</span>
+    </div>
+    <div class="field">
+      <label>선금</label>
+      <input type="text" id="prepay" placeholder="-" value="-">
+    </div>
+    <div class="field">
+      <label>잔금</label>
+      <input type="text" id="balance" placeholder="-" value="-">
+    </div>
+  </div>
+
+  <!-- 다이아몬드 -->
+  <div class="section" style="margin-top:16px">
+    <div class="section-title">다이아몬드</div>
+    <div class="field">
+      <label>감정원</label>
+      <input type="text" id="gem_lab" value="IGI">
+    </div>
+    <div class="field" id="field-grade1">
+      <label>등급/유형①</label>
+      <input type="text" id="grade" placeholder="감정서① 인식 결과">
+    </div>
+    <div class="field" id="field-igi1">
+      <label>IGI 번호①</label>
+      <input type="text" id="igi_number" placeholder="감정서① 인식 결과" inputmode="numeric">
+    </div>
+    <div class="field" id="field-grade2">
+      <label>등급/유형②</label>
+      <input type="text" id="grade2" placeholder="귀걸이 등 2개일 때">
+    </div>
+    <div class="field">
+      <label>IGI 번호②</label>
+      <input type="text" id="igi_number2" placeholder="귀걸이 등 2개일 때" inputmode="numeric">
+    </div>
+  </div>
+
+  <!-- 팀장 메모 -->
+  <div class="section" style="margin-top:16px">
+    <div class="section-title">팀장에게 메모</div>
+    <div class="field" style="align-items:flex-start; padding:0 16px">
+      <textarea id="memo" rows="3" placeholder="PDF에는 포함되지 않습니다. 특이사항이나 요청사항을 남겨주세요."></textarea>
+    </div>
+  </div>
+
+  <!-- 전송 -->
+  <div class="submit-wrap">
+    <button class="submit-btn" id="submit-btn" onclick="submitForm()">전송하기</button>
   </div>
 </div>
 
-<!-- ── 이미지: 감정서 ── -->
-<div class="upload-label">감정서</div>
-<div class="upload-area" id="cert-area">
-  <div class="upload-slot" onclick="document.getElementById('file-cert1').click()">
-    <div class="slot-icon">📄</div>
-    <div class="slot-label">감정서 ①</div>
-  </div>
-  <div class="upload-slot" onclick="document.getElementById('file-cert2').click()">
-    <div class="slot-icon">📄</div>
-    <div class="slot-label">감정서 ②</div>
-  </div>
-</div>
-<input type="file" id="file-cert1" accept="image/*" onchange="previewSlot('cert1',this,0)">
-<input type="file" id="file-cert2" accept="image/*" onchange="previewSlot('cert2',this,1)">
 
-<!-- ── 이미지: 영수증 + 주문서 ── -->
-<div class="upload-label">영수증 / 주문서</div>
-<div class="upload-area">
-  <div class="upload-slot" onclick="document.getElementById('file-receipt').click()">
-    <div class="slot-icon">🧾</div>
-    <div class="slot-label">고객 영수증</div>
-  </div>
-  <div class="upload-slot" onclick="document.getElementById('file-order').click()">
-    <div class="slot-icon">📋</div>
-    <div class="slot-label">주문서</div>
-  </div>
-</div>
-<input type="file" id="file-receipt" accept="image/*" onchange="previewSlot('receipt',this,2)">
-<input type="file" id="file-order"   accept="image/*" onchange="previewSlot('order',this,3)">
-
-<!-- ── OCR 상태 배너 ── -->
-<div class="ocr-banner" id="ocr-banner">
-  <div class="ocr-spinner" id="ocr-spinner"></div>
-  <span id="ocr-msg">주문서 인식 중...</span>
-</div>
-
-<!-- ── 제출 ── -->
-<div class="submit-wrap">
-  <button class="submit-btn" id="submit-btn" onclick="submitForm()">
-    전송하기
-  </button>
-</div>
-
-<!-- ── 캘린더 시트 ── -->
+<!-- ── 캘린더 ── -->
 <div class="cal-backdrop" id="cal-backdrop" onclick="handleBackdropClick(event)">
   <div class="cal-sheet">
     <div class="cal-header">
@@ -470,12 +482,9 @@
       <button class="cal-done-btn" onclick="closeCal()">완료</button>
     </div>
     <div class="cal-grid" id="cal-grid">
-      <div class="cal-dayname">일</div>
-      <div class="cal-dayname">월</div>
-      <div class="cal-dayname">화</div>
-      <div class="cal-dayname">수</div>
-      <div class="cal-dayname">목</div>
-      <div class="cal-dayname">금</div>
+      <div class="cal-dayname">일</div><div class="cal-dayname">월</div>
+      <div class="cal-dayname">화</div><div class="cal-dayname">수</div>
+      <div class="cal-dayname">목</div><div class="cal-dayname">금</div>
       <div class="cal-dayname">토</div>
     </div>
   </div>
@@ -486,11 +495,198 @@
   <div class="success-icon">✅</div>
   <div class="success-title">전송 완료!</div>
   <div class="success-sub">아지트에 자동으로 등록됐어요.<br>담당자가 확인 후 처리합니다.</div>
-  <button class="success-new-btn" onclick="resetForm()">새 거래 입력</button>
+  <button class="success-new-btn" onclick="resetAll()">새 거래 입력</button>
 </div>
+
 
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script>
+// ─────────────────────────────────────────
+// 단계 전환
+// ─────────────────────────────────────────
+function goStep2() {
+  document.getElementById('step1').style.display = 'none';
+  document.getElementById('step2').style.display = 'block';
+  window.scrollTo(0, 0);
+}
+function goStep1() {
+  document.getElementById('step2').style.display = 'none';
+  document.getElementById('step1').style.display = 'block';
+  window.scrollTo(0, 0);
+}
+
+// ─────────────────────────────────────────
+// 파일 선택 & 미리보기
+// ─────────────────────────────────────────
+const fileMap = {}; // { cert1, cert2, receipt, order }
+
+function onFileSelect(input, type) {
+  const file = input.files[0];
+  if (!file) return;
+  fileMap[type] = file;
+
+  const slotId = { cert1: 'slot-cert1', cert2: 'slot-cert2',
+                   receipt: 'slot-receipt', order: 'slot-order' }[type];
+  const slot = document.getElementById(slotId);
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    slot.innerHTML = `<img class="preview-img" src="${e.target.result}">
+                      <div class="check-badge">✓</div>
+                      <div class="ocr-badge" id="ocr-badge-${type}">인식 대기중</div>`;
+    slot.classList.add('has-img');
+    if (type === 'cert1' || type === 'cert2' || type === 'order') {
+      runOcr(file, type);
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+// ─────────────────────────────────────────
+// OCR
+// ─────────────────────────────────────────
+let tesseractWorker = null;
+let ocrQueue = Promise.resolve();
+
+async function initTesseract() {
+  if (tesseractWorker) return;
+  tesseractWorker = await Tesseract.createWorker('kor+eng', 1, {
+    workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/worker.min.js',
+    langPath:   'https://tessdata.projectnaptha.com/4.0.0',
+    corePath:   'https://cdn.jsdelivr.net/npm/tesseract.js-core@5/tesseract-core-simd-lstm.wasm.js',
+  });
+}
+
+function showOcrStatus(msg, loading) {
+  const banner  = document.getElementById('ocr-banner');
+  const spinner = document.getElementById('ocr-spinner');
+  banner.classList.add('show');
+  spinner.style.display = loading ? 'block' : 'none';
+  document.getElementById('ocr-msg').textContent = msg;
+}
+
+function setBadge(type, txt) {
+  const b = document.getElementById('ocr-badge-' + type);
+  if (b) b.textContent = txt;
+}
+
+function runOcr(file, type) {
+  // 순차 실행 (동시에 여러 이미지 업로드 시 queue)
+  ocrQueue = ocrQueue.then(() => _runOcr(file, type));
+}
+
+async function _runOcr(file, type) {
+  const label = { cert1: '감정서①', cert2: '감정서②', order: '주문서' }[type];
+  showOcrStatus(`${label} 인식 중...`, true);
+  setBadge(type, '인식 중...');
+
+  try {
+    await initTesseract();
+    const { data: { text } } = await tesseractWorker.recognize(file);
+
+    let filled = [];
+    if (type === 'cert1' || type === 'cert2') filled = parseCertText(text, type);
+    if (type === 'order')                     filled = parseOrderText(text);
+
+    if (filled.length > 0) {
+      showOcrStatus(`✅ ${label}: ${filled.join(', ')} 자동입력됨 (확인 후 수정하세요)`, false);
+      setBadge(type, '✓ 인식 완료');
+    } else {
+      showOcrStatus(`⚠️ ${label} 자동인식 실패 — 2단계에서 직접 입력해주세요`, false);
+      setBadge(type, '인식 실패');
+    }
+  } catch(e) {
+    showOcrStatus(`⚠️ ${label} OCR 오류 — 직접 입력해주세요`, false);
+    setBadge(type, '오류');
+    console.warn('OCR 오류', e);
+  }
+}
+
+// ── 감정서 파싱 (IGI번호 + 등급)
+function parseCertText(text, type) {
+  const filled = [];
+  const all    = text.replace(/\n/g, ' ');
+  const igiField   = type === 'cert1' ? 'igi_number' : 'igi_number2';
+  const gradeField = type === 'cert1' ? 'grade'      : 'grade2';
+  const label      = type === 'cert1' ? '①' : '②';
+
+  // IGI 번호: 9자리 숫자
+  const igiM = all.match(/\b(\d{9})\b/);
+  if (igiM) {
+    document.getElementById(igiField).value = igiM[1];
+    markFilled(igiField);
+    filled.push('IGI번호' + label);
+  }
+
+  // 캐럿 + 컬러 + 투명도 + 컷
+  const caratM = all.match(/([\d.]+)\s*(?:ct|CT|carat)/);
+  const colorM = all.match(/\b([D-J])\b/);
+  const clarM  = all.match(/\b(FL|IF|VVS1|VVS2|VS1|VS2|SI1|SI2)\b/i);
+  const cutM   = all.match(/\b(EXCELLENT|VERY GOOD|IDEAL|EX)\b/i);
+
+  if (caratM) {
+    let g = caratM[1] + 'ct';
+    if (colorM) g += ' ' + colorM[1];
+    if (clarM)  g += ' ' + clarM[1].toUpperCase();
+    if (cutM)   g += ' ' + cutM[1].toUpperCase();
+    document.getElementById(gradeField).value = g.trim();
+    markFilled(gradeField);
+    filled.push('등급' + label);
+  }
+
+  return filled;
+}
+
+// ── 주문서 파싱 (날짜 + 고객명 + 주문번호)
+function parseOrderText(text) {
+  const filled = [];
+  const lines  = text.split('\n').map(l => l.trim()).filter(Boolean);
+  const all    = text.replace(/\n/g, ' ');
+
+  // 판매날짜
+  const dateM = all.match(/(\d{4})[.\-\/](\d{1,2})[.\-\/](\d{1,2})/);
+  if (dateM) {
+    const y = dateM[1], m = dateM[2].padStart(2,'0'), d = dateM[3].padStart(2,'0');
+    selectedDate = new Date(parseInt(y), parseInt(m)-1, parseInt(d));
+    document.getElementById('date-display').value = `${y}.${m}.${d}`;
+    markFilled('date-display');
+    filled.push('판매날짜');
+  }
+
+  // 고객명
+  for (let i = 0; i < lines.length; i++) {
+    if (/고객명|고객|성함|구매자/.test(lines[i])) {
+      const nm = lines[i].replace(/고객명|고객|성함|구매자|[:：\s]/g,'').match(/[가-힣]{2,5}/);
+      if (nm) { setVal('customer_name', nm[0]); markFilled('customer_name'); filled.push('고객명'); break; }
+      if (i+1 < lines.length) {
+        const nm2 = lines[i+1].match(/^[가-힣]{2,5}$/);
+        if (nm2) { setVal('customer_name', nm2[0]); markFilled('customer_name'); filled.push('고객명'); break; }
+      }
+    }
+  }
+
+  // 주문번호
+  const orderM = all.match(/\d{8}[-]\d{4,}/);
+  if (orderM) {
+    setVal('order_number', orderM[0]);
+    markFilled('order_number');
+    filled.push('주문번호');
+  }
+
+  return filled;
+}
+
+// OCR로 채워진 필드 녹색 표시
+function markFilled(id) {
+  const el = document.getElementById(id);
+  if (el) el.style.color = '#34C759';
+}
+
+function setVal(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.value = val;
+}
+
 // ─────────────────────────────────────────
 // 금액 계산
 // ─────────────────────────────────────────
@@ -502,336 +698,173 @@ function calcTotal() {
 }
 
 // ─────────────────────────────────────────
-// 이미지 미리보기
-// ─────────────────────────────────────────
-const slots = [null, null, null, null]; // cert1, cert2, receipt, order
-
-function previewSlot(fieldName, input, slotIdx) {
-  const file = input.files[0];
-  if (!file) return;
-  slots[slotIdx] = file;
-
-  const allSlots = document.querySelectorAll('.upload-slot');
-  const slotEl = allSlots[slotIdx];
-
-  const reader = new FileReader();
-  reader.onload = e => {
-    slotEl.innerHTML = `<img class="preview-img" src="${e.target.result}"><div class="check-badge">✓</div>`;
-    slotEl.classList.add('has-img');
-    // 주문서(slotIdx=3)인 경우 OCR 실행
-    if (slotIdx === 3) runOcr(file);
-  };
-  reader.readAsDataURL(file);
-}
-
-// ─────────────────────────────────────────
-// OCR (Tesseract.js) — 주문서 자동 입력
-// ─────────────────────────────────────────
-let tesseractReady = false;
-let tesseractWorker = null;
-
-async function initTesseract() {
-  if (tesseractReady) return;
-  try {
-    tesseractWorker = await Tesseract.createWorker('kor+eng', 1, {
-      workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/worker.min.js',
-      langPath: 'https://tessdata.projectnaptha.com/4.0.0',
-      corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5/tesseract-core-simd-lstm.wasm.js',
-    });
-    tesseractReady = true;
-  } catch(e) {
-    console.warn('Tesseract 초기화 실패', e);
-  }
-}
-
-async function runOcr(file) {
-  const banner  = document.getElementById('ocr-banner');
-  const spinner = document.getElementById('ocr-spinner');
-  const msg     = document.getElementById('ocr-msg');
-  banner.classList.add('show');
-  msg.textContent = '주문서 인식 중...';
-  spinner.style.display = 'block';
-
-  try {
-    await initTesseract();
-    if (!tesseractWorker) throw new Error('worker 없음');
-
-    const { data: { text } } = await tesseractWorker.recognize(file);
-    const filled = parseOrderText(text);
-
-    spinner.style.display = 'none';
-    if (filled.length > 0) {
-      msg.innerHTML = `✅ 자동입력 완료: ${filled.join(', ')} <span style="font-size:11px; color:#888;">(확인 후 수정해주세요)</span>`;
-    } else {
-      msg.textContent = '⚠️ 자동인식 실패 — 직접 입력해주세요.';
-    }
-  } catch(e) {
-    spinner.style.display = 'none';
-    msg.textContent = '⚠️ OCR 오류 — 직접 입력해주세요.';
-    console.warn('OCR 오류', e);
-  }
-}
-
-function parseOrderText(text) {
-  const filled = [];
-  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
-
-  // 숫자 추출 헬퍼 (콤마/공백 제거)
-  function extractNum(str) {
-    const m = str.replace(/[,\s]/g, '').match(/\d{4,}/);
-    return m ? parseInt(m[0]) : null;
-  }
-
-  // 고객명 탐색: "고객명", "고객" 다음 줄 또는 같은 줄 뒤
-  for (let i = 0; i < lines.length; i++) {
-    const l = lines[i];
-    if (/고객명|고객|성함/.test(l)) {
-      const nameMatch = l.replace(/고객명|고객|성함|[:：\s]/g, '').match(/[가-힣]{2,4}/);
-      if (nameMatch) {
-        setIfEmpty('customer_name', nameMatch[0]);
-        filled.push('고객명');
-        break;
-      }
-      // 다음 줄에 있는 경우
-      if (i + 1 < lines.length) {
-        const nextMatch = lines[i+1].match(/[가-힣]{2,4}/);
-        if (nextMatch) {
-          setIfEmpty('customer_name', nextMatch[0]);
-          filled.push('고객명');
-          break;
-        }
-      }
-    }
-  }
-
-  // 주문번호 탐색: 날짜형 패턴 or "주문"
-  for (const l of lines) {
-    const orderMatch = l.match(/\d{8}[-\s]\d{4,}/);
-    if (orderMatch) {
-      setIfEmpty('order_number', orderMatch[0].replace(/\s/, '-'));
-      filled.push('주문번호');
-      break;
-    }
-  }
-
-  // 금액 탐색: "나석", "다이아", "석가" → diamond_amount
-  for (const l of lines) {
-    if (/나석|다이아|석가|다이야/.test(l)) {
-      const n = extractNum(l);
-      if (n && n > 10000) {
-        setIfEmpty('diamond_amount', n);
-        calcTotal();
-        filled.push('다이아나석 금액');
-        break;
-      }
-    }
-  }
-
-  // 세팅비 탐색
-  for (const l of lines) {
-    if (/세팅|setting/.test(l)) {
-      const n = extractNum(l);
-      if (n && n > 1000) {
-        setIfEmpty('setting_fee', n);
-        calcTotal();
-        filled.push('세팅비');
-        break;
-      }
-    }
-  }
-
-  // 등급/유형: ct 패턴 (예: 1.04ct D VVS2)
-  for (const l of lines) {
-    const gradeMatch = l.match(/[\d.]+\s*ct[^\n]*/i);
-    if (gradeMatch) {
-      setIfEmpty('grade', gradeMatch[0].trim());
-      filled.push('등급');
-      break;
-    }
-  }
-
-  return filled;
-}
-
-function setIfEmpty(id, value) {
-  const el = document.getElementById(id);
-  if (el && !el.value) el.value = value;
-}
-
-// ─────────────────────────────────────────
 // 캘린더
 // ─────────────────────────────────────────
-const today   = new Date();
-let calYear   = today.getFullYear();
-let calMonth  = today.getMonth();     // 0-indexed
+const today  = new Date();
+let calYear  = today.getFullYear();
+let calMonth = today.getMonth();
 let selectedDate = null;
 
-function padZ(n) { return String(n).padStart(2, '0'); }
+function padZ(n) { return String(n).padStart(2,'0'); }
 
 function openCal() {
-  // 선택 안 됐으면 오늘로 초기화
   if (!selectedDate) {
-    calYear  = today.getFullYear();
-    calMonth = today.getMonth();
+    calYear = today.getFullYear(); calMonth = today.getMonth();
     selectedDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   } else {
-    calYear  = selectedDate.getFullYear();
-    calMonth = selectedDate.getMonth();
+    calYear = selectedDate.getFullYear(); calMonth = selectedDate.getMonth();
   }
   renderCal();
   document.getElementById('cal-backdrop').classList.add('open');
 }
-
 function closeCal() {
   document.getElementById('cal-backdrop').classList.remove('open');
   if (selectedDate) {
     const y = selectedDate.getFullYear();
-    const m = padZ(selectedDate.getMonth() + 1);
+    const m = padZ(selectedDate.getMonth()+1);
     const d = padZ(selectedDate.getDate());
     document.getElementById('date-display').value = `${y}.${m}.${d}`;
   }
 }
-
 function handleBackdropClick(e) {
   if (e.target === document.getElementById('cal-backdrop')) closeCal();
 }
-
 function shiftMonth(delta) {
   calMonth += delta;
   if (calMonth > 11) { calMonth = 0; calYear++; }
   if (calMonth < 0)  { calMonth = 11; calYear--; }
   renderCal();
 }
-
 function renderCal() {
-  const monthNames = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
-  document.getElementById('cal-month-label').textContent = `${calYear}년 ${monthNames[calMonth]}`;
-
+  const names = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+  document.getElementById('cal-month-label').textContent = `${calYear}년 ${names[calMonth]}`;
   const grid = document.getElementById('cal-grid');
-  // 헤더 7개 유지, 날짜 셀만 제거
   while (grid.children.length > 7) grid.removeChild(grid.lastChild);
-
-  const firstDay = new Date(calYear, calMonth, 1).getDay(); // 0=Sun
-  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
-
-  // 빈 칸
+  const firstDay = new Date(calYear, calMonth, 1).getDay();
+  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
   for (let i = 0; i < firstDay; i++) {
-    const blank = document.createElement('div');
-    blank.className = 'cal-day';
-    grid.appendChild(blank);
+    const b = document.createElement('div'); b.className = 'cal-day'; grid.appendChild(b);
   }
-
   for (let d = 1; d <= daysInMonth; d++) {
     const cell = document.createElement('div');
-    const dayOfWeek = new Date(calYear, calMonth, d).getDay();
-    const classes = ['cal-day'];
-    if (dayOfWeek === 0) classes.push('sun');
-    if (dayOfWeek === 6) classes.push('sat');
-
-    const isToday = (d === today.getDate() && calMonth === today.getMonth() && calYear === today.getFullYear());
-    if (isToday) classes.push('today');
-
-    const isSel = selectedDate &&
-      d === selectedDate.getDate() &&
-      calMonth === selectedDate.getMonth() &&
-      calYear === selectedDate.getFullYear();
-    if (isSel) classes.push('selected');
-
-    cell.className = classes.join(' ');
+    const dow  = new Date(calYear, calMonth, d).getDay();
+    const cls  = ['cal-day'];
+    if (dow === 0) cls.push('sun');
+    if (dow === 6) cls.push('sat');
+    if (d === today.getDate() && calMonth === today.getMonth() && calYear === today.getFullYear()) cls.push('today');
+    if (selectedDate && d === selectedDate.getDate() && calMonth === selectedDate.getMonth() && calYear === selectedDate.getFullYear()) cls.push('selected');
+    cell.className = cls.join(' ');
     cell.textContent = d;
-    cell.addEventListener('click', () => selectDay(d));
+    cell.addEventListener('click', () => { selectedDate = new Date(calYear, calMonth, d); renderCal(); });
     grid.appendChild(cell);
   }
-}
-
-function selectDay(d) {
-  selectedDate = new Date(calYear, calMonth, d);
-  renderCal();  // 선택 표시 업데이트
 }
 
 // ─────────────────────────────────────────
 // 폼 제출
 // ─────────────────────────────────────────
 async function submitForm() {
-  const store    = document.getElementById('store').value;
-  const date     = document.getElementById('date-display').value;
-  const grade    = document.getElementById('grade').value.trim();
-  const diamond  = parseInt(document.getElementById('diamond_amount').value) || 0;
-  const setting  = parseInt(document.getElementById('setting_fee').value)    || 0;
+  const date  = document.getElementById('date-display').value;
+  const grade = document.getElementById('grade').value.trim();
+  const d     = parseInt(document.getElementById('diamond_amount').value) || 0;
+  const s     = parseInt(document.getElementById('setting_fee').value)    || 0;
 
-  if (!date)   { alert('판매날짜를 선택해주세요.'); return; }
-  if (!grade)  { alert('등급/유형을 입력해주세요.'); return; }
-  if (!diamond && !setting) { alert('금액을 입력해주세요.'); return; }
+  if (!date)            { alert('판매날짜를 선택해주세요.'); return; }
+  if (!grade)           { alert('등급/유형①을 입력해주세요.'); return; }
+  if (!d && !s)         { alert('금액을 입력해주세요.'); return; }
 
   const btn = document.getElementById('submit-btn');
-  btn.disabled = true;
-  btn.textContent = '전송 중...';
+  btn.disabled = true; btn.textContent = '전송 중...';
 
   const fd = new FormData();
-  fd.append('store',          store);
+  fd.append('store',          document.getElementById('store').value);
   fd.append('date',           date);
   fd.append('customer_name',  document.getElementById('customer_name').value.trim());
   fd.append('order_number',   document.getElementById('order_number').value.trim());
-  fd.append('diamond_amount', diamond);
-  fd.append('setting_fee',    setting);
+  fd.append('diamond_amount', d);
+  fd.append('setting_fee',    s);
   fd.append('gem_lab',        document.getElementById('gem_lab').value.trim() || 'IGI');
   fd.append('grade',          grade);
+  fd.append('grade2',         document.getElementById('grade2').value.trim());
+  fd.append('prepay',         document.getElementById('prepay').value.trim() || '-');
   fd.append('balance',        document.getElementById('balance').value.trim() || '-');
   fd.append('igi_number',     document.getElementById('igi_number').value.trim());
   fd.append('igi_number2',    document.getElementById('igi_number2').value.trim());
   fd.append('memo',           document.getElementById('memo').value.trim());
 
-  const fileIds = ['file-cert1','file-cert2','file-receipt','file-order'];
-  const fieldNames = ['cert1','cert2','receipt','order_img'];
-  fileIds.forEach((fid, i) => {
-    const f = document.getElementById(fid).files[0];
-    if (f) fd.append(fieldNames[i], f);
-  });
+  if (fileMap.cert1)   fd.append('cert1',     fileMap.cert1);
+  if (fileMap.cert2)   fd.append('cert2',     fileMap.cert2);
+  if (fileMap.receipt) fd.append('receipt',   fileMap.receipt);
+  if (fileMap.order)   fd.append('order_img', fileMap.order);
 
   try {
-    const res = await fetch('/api/transactions', { method: 'POST', body: fd });
+    const res  = await fetch('/api/transactions', { method: 'POST', body: fd });
     const data = await res.json();
     if (data.success) {
       document.getElementById('success-screen').classList.add('show');
     } else {
       alert('오류가 발생했습니다. 다시 시도해주세요.');
-      btn.disabled = false;
-      btn.textContent = '전송하기';
+      btn.disabled = false; btn.textContent = '전송하기';
     }
   } catch(e) {
     alert('네트워크 오류입니다. 다시 시도해주세요.');
-    btn.disabled = false;
-    btn.textContent = '전송하기';
+    btn.disabled = false; btn.textContent = '전송하기';
   }
 }
 
-function resetForm() {
-  document.querySelector('form') && document.querySelector('form').reset();
-  document.getElementById('date-display').value = '';
-  document.getElementById('total_display').value = '';
-  selectedDate = null;
-  document.getElementById('success-screen').classList.remove('show');
-  document.getElementById('submit-btn').disabled = false;
-  document.getElementById('submit-btn').textContent = '전송하기';
-  // 슬롯 초기화
-  document.querySelectorAll('.upload-slot').forEach((s, i) => {
-    const icons   = ['📄','📄','🧾','📋'];
-    const labels  = ['감정서 ①','감정서 ②','고객 영수증','주문서'];
-    s.innerHTML   = `<div class="slot-icon">${icons[i]}</div><div class="slot-label">${labels[i]}</div>`;
-    s.classList.remove('has-img');
-  });
+// ─────────────────────────────────────────
+// 전체 초기화
+// ─────────────────────────────────────────
+function resetAll() {
+  // 파일맵 초기화
+  Object.keys(fileMap).forEach(k => delete fileMap[k]);
   ['file-cert1','file-cert2','file-receipt','file-order'].forEach(id => {
     document.getElementById(id).value = '';
   });
+  // 슬롯 초기화
+  const slotDefs = [
+    ['slot-cert1',   '📄', '감정서 ①',   '업로드 시 등급·번호<br>자동 인식'],
+    ['slot-cert2',   '📄', '감정서 ②',   '귀걸이 등<br>2개일 때'],
+    ['slot-receipt', '🧾', '고객 영수증', ''],
+    ['slot-order',   '📋', '주문서',      '업로드 시 날짜·고객명·<br>주문번호 자동 인식'],
+  ];
+  slotDefs.forEach(([id, icon, label, hint]) => {
+    const s = document.getElementById(id);
+    s.innerHTML = `<div class="slot-icon">${icon}</div><div class="slot-label">${label}</div>` +
+                  (hint ? `<div class="slot-hint">${hint}</div>` : '');
+    s.classList.remove('has-img');
+  });
+
+  // 폼 필드 초기화
+  ['customer_name','order_number','diamond_amount','setting_fee',
+   'grade','grade2','igi_number','igi_number2','memo'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.value = ''; el.style.color = ''; }
+  });
+  document.getElementById('gem_lab').value = 'IGI';
+  document.getElementById('prepay').value  = '-';
+  document.getElementById('balance').value = '-';
+  document.getElementById('total_display').value = '';
+  document.getElementById('date-display').value  = '';
+  selectedDate = null;
+
+  // OCR 배너 초기화
+  document.getElementById('ocr-banner').classList.remove('show');
+
+  // 버튼/화면 초기화
+  document.getElementById('submit-btn').disabled = false;
+  document.getElementById('submit-btn').textContent = '전송하기';
+  document.getElementById('success-screen').classList.remove('show');
+
+  // step1으로 복귀
+  goStep1();
 }
 
-// ─────────────────────────────────────────
-// 초기화: 오늘 날짜 기본 선택
-// ─────────────────────────────────────────
+// 초기 날짜 세팅
 (function init() {
   selectedDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   const y = selectedDate.getFullYear();
-  const m = padZ(selectedDate.getMonth() + 1);
+  const m = padZ(selectedDate.getMonth()+1);
   const d = padZ(selectedDate.getDate());
   document.getElementById('date-display').value = `${y}.${m}.${d}`;
 })();
