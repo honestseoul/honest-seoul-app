@@ -1,15 +1,18 @@
-import os, uuid, json, requests
+import os, uuid, json, re, requests
 from datetime import datetime
 from flask import Flask, request, jsonify, render_template, send_file, abort
 import sqlite3
 
 app = Flask(__name__)
 
-UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'uploads')
-DB_PATH = os.path.join(os.path.dirname(__file__), 'transactions.db')
+DATA_DIR      = os.environ.get('DATA_DIR', os.path.dirname(__file__))
+UPLOAD_FOLDER = os.path.join(DATA_DIR, 'uploads')
+DB_PATH       = os.path.join(DATA_DIR, 'transactions.db')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-AGIT_WEBHOOK_URL = os.environ.get('AGIT_WEBHOOK_URL', '')
+AGIT_WEBHOOK_URL  = os.environ.get('AGIT_WEBHOOK_URL', '')
+CLOVA_OCR_URL     = os.environ.get('CLOVA_OCR_URL', '')
+CLOVA_OCR_SECRET  = os.environ.get('CLOVA_OCR_SECRET', '')
 
 
 # ──────────────────────────────────────────────
@@ -164,7 +167,7 @@ def get_transactions():
         if month:
             rows = conn.execute(
                 "SELECT * FROM transactions WHERE date LIKE ? ORDER BY date DESC",
-                (f'{month.replace(".", "-")}%',)
+                (f'{month.replace("-", ".")}%',)
             ).fetchall()
         else:
             rows = conn.execute(
@@ -214,6 +217,100 @@ def update_transaction(tx_id):
         conn.execute(f'UPDATE transactions SET {set_clause} WHERE id=?', values)
         conn.commit()
     return jsonify({'success': True})
+
+
+# ──────────────────────────────────────────────
+# Clova OCR
+# ──────────────────────────────────────────────
+@app.route('/api/ocr', methods=['POST'])
+def ocr_image():
+    if not CLOVA_OCR_URL or not CLOVA_OCR_SECRET:
+        return jsonify({'error': 'OCR이 설정되지 않았습니다.'}), 503
+
+    file     = request.files.get('image')
+    img_type = request.form.get('type', 'cert1')  # cert1 | cert2 | order
+
+    if not file:
+        return jsonify({'error': '이미지가 없습니다.'}), 400
+
+    ext       = file.filename.rsplit('.', 1)[-1].lower()
+    fmt_map   = {'jpg':'jpg','jpeg':'jpg','png':'png','gif':'gif','webp':'webp'}
+    img_fmt   = fmt_map.get(ext, 'jpg')
+
+    message = {
+        "version": "V2",
+        "requestId": str(uuid.uuid4()),
+        "timestamp": int(datetime.now().timestamp() * 1000),
+        "lang": "ko",
+        "images": [{"format": img_fmt, "name": "image"}],
+        "enableTableDetection": False
+    }
+
+    try:
+        resp = requests.post(
+            CLOVA_OCR_URL,
+            headers={'X-OCR-SECRET': CLOVA_OCR_SECRET},
+            files={'file': (file.filename, file.stream, file.content_type)},
+            data={'message': json.dumps(message)},
+            timeout=15
+        )
+        result = resp.json()
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+    try:
+        fields    = result['images'][0]['fields']
+        lines     = [f['inferText'] for f in fields]
+        full_text = ' '.join(lines)
+    except Exception:
+        return jsonify({'error': 'OCR 응답 파싱 실패'}), 500
+
+    extracted = {}
+
+    if img_type in ('cert1', 'cert2'):
+        # IGI 번호 (9자리 숫자)
+        m = re.search(r'\b(\d{9})\b', full_text)
+        if m:
+            extracted['igi_number'] = m.group(1)
+
+        # 등급: 캐럿 + 컬러 + 투명도 + 컷
+        carat_m = re.search(r'([\d.]+)\s*(?:ct|CT|carat|CARAT)', full_text)
+        color_m = re.search(r'\b([DEFGHIJ])\b', full_text)
+        clar_m  = re.search(r'\b(FL|IF|VVS1|VVS2|VS1|VS2|SI1|SI2)\b', full_text, re.I)
+        cut_m   = re.search(r'\b(EXCELLENT|VERY GOOD|IDEAL)\b', full_text, re.I)
+
+        if carat_m:
+            grade = carat_m.group(1) + 'ct'
+            if color_m: grade += ' ' + color_m.group(1)
+            if clar_m:  grade += ' ' + clar_m.group(1).upper()
+            if cut_m:   grade += ' ' + cut_m.group(1).upper()
+            extracted['grade'] = grade.strip()
+
+    elif img_type == 'order':
+        # 판매날짜
+        date_m = re.search(r'(\d{4})[.\-\/](\d{1,2})[.\-\/](\d{1,2})', full_text)
+        if date_m:
+            y, m, d = date_m.group(1), date_m.group(2).zfill(2), date_m.group(3).zfill(2)
+            extracted['date'] = f'{y}.{m}.{d}'
+
+        # 고객명
+        for i, line in enumerate(lines):
+            if re.search(r'고객명|고객|성함|구매자', line):
+                nm = re.sub(r'고객명|고객|성함|구매자|[:：\s]', '', line)
+                nm_m = re.search(r'[가-힣]{2,5}', nm)
+                if nm_m:
+                    extracted['customer_name'] = nm_m.group(); break
+                if i + 1 < len(lines):
+                    nm2 = re.match(r'^[가-힣]{2,5}$', lines[i+1])
+                    if nm2:
+                        extracted['customer_name'] = nm2.group(); break
+
+        # 주문번호
+        order_m = re.search(r'\d{8}[-]\d{4,}', full_text)
+        if order_m:
+            extracted['order_number'] = order_m.group()
+
+    return jsonify({'success': True, 'extracted': extracted})
 
 
 # ──────────────────────────────────────────────

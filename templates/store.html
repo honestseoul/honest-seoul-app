@@ -113,6 +113,26 @@
     .field.auto-field input { color: var(--blue); font-weight: 600; }
     .field.ocr-filled input { color: var(--green); }
 
+    /* ── 자동완성 드롭다운 ── */
+    .suggest-list {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.13);
+      overflow: hidden;
+    }
+    .suggest-item {
+      padding: 12px 16px;
+      font-size: 14px;
+      font-family: 'SF Mono', ui-monospace, monospace;
+      letter-spacing: .04em;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      color: var(--text);
+    }
+    .suggest-item:last-child { border-bottom: none; }
+    .suggest-item:active { background: var(--bg); }
+
     /* ── CALENDAR ── */
     .cal-backdrop {
       display: none;
@@ -400,7 +420,10 @@
     </div>
     <div class="field" id="field-order-num">
       <label>주문번호</label>
-      <input type="text" id="order_number" placeholder="20260308-0000073" autocomplete="off">
+      <input type="text" id="order_number" placeholder="20260308-0000296"
+             autocomplete="off" inputmode="numeric"
+             oninput="formatOrderNum(this)"
+             onblur="validateOrderNum(this)">
     </div>
   </div>
 
@@ -441,15 +464,21 @@
     </div>
     <div class="field" id="field-grade1">
       <label>등급/유형①</label>
-      <input type="text" id="grade" placeholder="감정서① 인식 결과">
+      <input type="text" id="grade" placeholder="1.04CT D VVS2 IDEAL"
+             autocomplete="off"
+             oninput="onGradeInput(this)"
+             onblur="setTimeout(()=>hideSuggestions('grade'),160)">
     </div>
     <div class="field" id="field-igi1">
       <label>IGI 번호①</label>
-      <input type="text" id="igi_number" placeholder="감정서① 인식 결과" inputmode="numeric">
+      <input type="text" id="igi_number" placeholder="감정서 번호" inputmode="numeric">
     </div>
     <div class="field" id="field-grade2">
       <label>등급/유형②</label>
-      <input type="text" id="grade2" placeholder="귀걸이 등 2개일 때">
+      <input type="text" id="grade2" placeholder="귀걸이 등 2개일 때"
+             autocomplete="off"
+             oninput="onGradeInput(this)"
+             onblur="setTimeout(()=>hideSuggestions('grade2'),160)">
     </div>
     <div class="field">
       <label>IGI 번호②</label>
@@ -499,7 +528,6 @@
 </div>
 
 
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script>
 // ─────────────────────────────────────────
 // 단계 전환
@@ -543,19 +571,9 @@ function onFileSelect(input, type) {
 }
 
 // ─────────────────────────────────────────
-// OCR
+// OCR (Naver Clova — 서버 경유)
 // ─────────────────────────────────────────
-let tesseractWorker = null;
 let ocrQueue = Promise.resolve();
-
-async function initTesseract() {
-  if (tesseractWorker) return;
-  tesseractWorker = await Tesseract.createWorker('kor+eng', 1, {
-    workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/worker.min.js',
-    langPath:   'https://tessdata.projectnaptha.com/4.0.0',
-    corePath:   'https://cdn.jsdelivr.net/npm/tesseract.js-core@5/tesseract-core-simd-lstm.wasm.js',
-  });
-}
 
 function showOcrStatus(msg, loading) {
   const banner  = document.getElementById('ocr-banner');
@@ -571,7 +589,6 @@ function setBadge(type, txt) {
 }
 
 function runOcr(file, type) {
-  // 순차 실행 (동시에 여러 이미지 업로드 시 queue)
   ocrQueue = ocrQueue.then(() => _runOcr(file, type));
 }
 
@@ -581,12 +598,16 @@ async function _runOcr(file, type) {
   setBadge(type, '인식 중...');
 
   try {
-    await initTesseract();
-    const { data: { text } } = await tesseractWorker.recognize(file);
+    const fd = new FormData();
+    fd.append('image', file);
+    fd.append('type', type);
 
-    let filled = [];
-    if (type === 'cert1' || type === 'cert2') filled = parseCertText(text, type);
-    if (type === 'order')                     filled = parseOrderText(text);
+    const res  = await fetch('/api/ocr', { method: 'POST', body: fd });
+    const data = await res.json();
+
+    if (!data.success) throw new Error(data.error || 'OCR 실패');
+
+    const filled = applyExtracted(data.extracted, type);
 
     if (filled.length > 0) {
       showOcrStatus(`✅ ${label}: ${filled.join(', ')} 자동입력됨 (확인 후 수정하세요)`, false);
@@ -602,75 +623,43 @@ async function _runOcr(file, type) {
   }
 }
 
-// ── 감정서 파싱 (IGI번호 + 등급)
-function parseCertText(text, type) {
+function applyExtracted(extracted, type) {
   const filled = [];
-  const all    = text.replace(/\n/g, ' ');
-  const igiField   = type === 'cert1' ? 'igi_number' : 'igi_number2';
-  const gradeField = type === 'cert1' ? 'grade'      : 'grade2';
-  const label      = type === 'cert1' ? '①' : '②';
+  const suffix = type === 'cert2' ? '②' : '①';
 
-  // IGI 번호: 9자리 숫자
-  const igiM = all.match(/\b(\d{9})\b/);
-  if (igiM) {
-    document.getElementById(igiField).value = igiM[1];
-    markFilled(igiField);
-    filled.push('IGI번호' + label);
-  }
-
-  // 캐럿 + 컬러 + 투명도 + 컷
-  const caratM = all.match(/([\d.]+)\s*(?:ct|CT|carat)/);
-  const colorM = all.match(/\b([D-J])\b/);
-  const clarM  = all.match(/\b(FL|IF|VVS1|VVS2|VS1|VS2|SI1|SI2)\b/i);
-  const cutM   = all.match(/\b(EXCELLENT|VERY GOOD|IDEAL|EX)\b/i);
-
-  if (caratM) {
-    let g = caratM[1] + 'ct';
-    if (colorM) g += ' ' + colorM[1];
-    if (clarM)  g += ' ' + clarM[1].toUpperCase();
-    if (cutM)   g += ' ' + cutM[1].toUpperCase();
-    document.getElementById(gradeField).value = g.trim();
-    markFilled(gradeField);
-    filled.push('등급' + label);
-  }
-
-  return filled;
-}
-
-// ── 주문서 파싱 (날짜 + 고객명 + 주문번호)
-function parseOrderText(text) {
-  const filled = [];
-  const lines  = text.split('\n').map(l => l.trim()).filter(Boolean);
-  const all    = text.replace(/\n/g, ' ');
-
-  // 판매날짜
-  const dateM = all.match(/(\d{4})[.\-\/](\d{1,2})[.\-\/](\d{1,2})/);
-  if (dateM) {
-    const y = dateM[1], m = dateM[2].padStart(2,'0'), d = dateM[3].padStart(2,'0');
-    selectedDate = new Date(parseInt(y), parseInt(m)-1, parseInt(d));
-    document.getElementById('date-display').value = `${y}.${m}.${d}`;
-    markFilled('date-display');
-    filled.push('판매날짜');
-  }
-
-  // 고객명
-  for (let i = 0; i < lines.length; i++) {
-    if (/고객명|고객|성함|구매자/.test(lines[i])) {
-      const nm = lines[i].replace(/고객명|고객|성함|구매자|[:：\s]/g,'').match(/[가-힣]{2,5}/);
-      if (nm) { setVal('customer_name', nm[0]); markFilled('customer_name'); filled.push('고객명'); break; }
-      if (i+1 < lines.length) {
-        const nm2 = lines[i+1].match(/^[가-힣]{2,5}$/);
-        if (nm2) { setVal('customer_name', nm2[0]); markFilled('customer_name'); filled.push('고객명'); break; }
-      }
+  if (type === 'cert1' || type === 'cert2') {
+    const igiField   = type === 'cert1' ? 'igi_number' : 'igi_number2';
+    const gradeField = type === 'cert1' ? 'grade'      : 'grade2';
+    if (extracted.igi_number) {
+      setVal(igiField, extracted.igi_number);
+      markFilled(igiField);
+      filled.push('IGI번호' + suffix);
+    }
+    if (extracted.grade) {
+      setVal(gradeField, extracted.grade);
+      markFilled(gradeField);
+      filled.push('등급' + suffix);
     }
   }
 
-  // 주문번호
-  const orderM = all.match(/\d{8}[-]\d{4,}/);
-  if (orderM) {
-    setVal('order_number', orderM[0]);
-    markFilled('order_number');
-    filled.push('주문번호');
+  if (type === 'order') {
+    if (extracted.date) {
+      const p = extracted.date.split('.');
+      selectedDate = new Date(parseInt(p[0]), parseInt(p[1])-1, parseInt(p[2]));
+      document.getElementById('date-display').value = extracted.date;
+      markFilled('date-display');
+      filled.push('판매날짜');
+    }
+    if (extracted.customer_name) {
+      setVal('customer_name', extracted.customer_name);
+      markFilled('customer_name');
+      filled.push('고객명');
+    }
+    if (extracted.order_number) {
+      setVal('order_number', extracted.order_number);
+      markFilled('order_number');
+      filled.push('주문번호');
+    }
   }
 
   return filled;
@@ -773,6 +762,8 @@ async function submitForm() {
   if (!grade)           { alert('등급/유형①을 입력해주세요.'); return; }
   if (!d && !s)         { alert('금액을 입력해주세요.'); return; }
 
+  if (!confirm('정말 등록하시겠습니까?')) return;
+
   const btn = document.getElementById('submit-btn');
   btn.disabled = true; btn.textContent = '전송 중...';
 
@@ -860,6 +851,128 @@ function resetAll() {
   goStep1();
 }
 
+// ─────────────────────────────────────────
+// 주문번호 자동 포맷 (20260308-0000296)
+// ─────────────────────────────────────────
+function formatOrderNum(input) {
+  // 숫자만 추출
+  let digits = input.value.replace(/[^0-9]/g, '');
+  if (digits.length > 15) digits = digits.slice(0, 15);
+  // 8자리 이상이면 대시 삽입
+  if (digits.length > 8) {
+    input.value = digits.slice(0, 8) + '-' + digits.slice(8);
+  } else {
+    input.value = digits;
+  }
+  input.style.color = '';
+}
+
+function validateOrderNum(input) {
+  const v = input.value.trim();
+  if (!v) return;
+  if (!/^\d{8}-\d{7}$/.test(v)) {
+    alert('주문번호 형식이 맞지 않습니다.\n올바른 형식: 20260308-0000296\n(날짜 8자리 - 일련번호 7자리)');
+    setTimeout(() => input.focus(), 100);
+  }
+}
+
+// ─────────────────────────────────────────
+// 등급 자동완성
+// ─────────────────────────────────────────
+const GRADE_COLORS    = ['D','E','F','G','H','I','J','K'];
+const GRADE_CLARITIES = ['FL','IF','VVS1','VVS2','VS1','VS2','SI1','SI2'];
+const GRADE_CUTS      = ['IDEAL','EXCELLENT','VERY GOOD','GOOD'];
+
+function getGradeSuggestions(raw) {
+  if (!raw || raw.length < 2) return [];
+  const v     = raw.toUpperCase().trim();
+  const parts = v.split(/\s+/);
+
+  // 첫 파트: 캐럿 (예: "1.04" 또는 "1.04CT")
+  const caratMatch = parts[0].match(/^(\d+\.?\d*)(CT)?$/i);
+  if (!caratMatch) return [];
+  const carat = caratMatch[1] + 'CT';
+  const sug   = [];
+
+  if (parts.length === 1) {
+    // 캐럿만 입력 → 상위 컬러 3가지 × 상위 클래리티 2가지 추천
+    for (const col of ['D','E','F']) {
+      for (const cla of ['VVS2','VVS1']) {
+        sug.push(`${carat} ${col} ${cla} IDEAL`);
+        if (sug.length >= 5) return sug;
+      }
+    }
+  } else if (parts.length === 2) {
+    const partial = parts[1];
+    for (const col of GRADE_COLORS.filter(c => c.startsWith(partial))) {
+      for (const cla of ['VVS1','VVS2','VS1','IF']) {
+        sug.push(`${carat} ${col} ${cla} IDEAL`);
+        if (sug.length >= 5) return sug;
+      }
+    }
+  } else if (parts.length === 3) {
+    const col     = parts[1];
+    const partial = parts[2];
+    for (const cla of GRADE_CLARITIES.filter(c => c.startsWith(partial))) {
+      for (const cut of GRADE_CUTS) {
+        sug.push(`${carat} ${col} ${cla} ${cut}`);
+        if (sug.length >= 5) return sug;
+      }
+    }
+  } else if (parts.length >= 4) {
+    const col     = parts[1];
+    const cla     = parts[2];
+    const partial = parts.slice(3).join(' ');
+    for (const cut of GRADE_CUTS.filter(c => c.startsWith(partial))) {
+      sug.push(`${carat} ${col} ${cla} ${cut}`);
+    }
+  }
+  return sug.slice(0, 5);
+}
+
+function onGradeInput(inputEl) {
+  // 대문자 자동 변환
+  const pos = inputEl.selectionStart;
+  inputEl.value = inputEl.value.toUpperCase();
+  inputEl.setSelectionRange(pos, pos);
+  // 자동완성 표시
+  const sug = getGradeSuggestions(inputEl.value);
+  showSuggestions(inputEl, sug, inputEl.id);
+}
+
+function showSuggestions(inputEl, suggestions, fieldId) {
+  const listId = 'sug-' + fieldId;
+  let list = document.getElementById(listId);
+  if (!list) {
+    list = document.createElement('div');
+    list.id = listId;
+    list.className = 'suggest-list';
+    document.body.appendChild(list);
+  }
+  if (!suggestions.length) {
+    list.style.display = 'none';
+    return;
+  }
+  const rect = inputEl.closest('.field').getBoundingClientRect();
+  list.style.cssText = `position:fixed; left:16px; right:16px; top:${rect.bottom + 2}px; z-index:100; display:block;`;
+  list.innerHTML = suggestions.map(s =>
+    `<div class="suggest-item" onmousedown="selectSuggestion(event,'${fieldId}','${s}')">${s}</div>`
+  ).join('');
+}
+
+function selectSuggestion(e, fieldId, value) {
+  e.preventDefault();
+  const input = document.getElementById(fieldId);
+  if (input) { input.value = value; input.style.color = ''; }
+  hideSuggestions(fieldId);
+}
+
+function hideSuggestions(fieldId) {
+  const list = document.getElementById('sug-' + fieldId);
+  if (list) list.style.display = 'none';
+}
+
+// ─────────────────────────────────────────
 // 초기 날짜 세팅
 (function init() {
   selectedDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
