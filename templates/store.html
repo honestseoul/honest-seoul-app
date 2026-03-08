@@ -186,21 +186,38 @@
     .cal-day.selected.sat { color: white; }
     .cal-day.other-month { color: #C7C7CC; }
 
-    /* ── IGI 버튼 ── */
-    .igi-row {
-      display: flex; align-items: center; gap: 8px;
-    }
-    .igi-row input { flex: 1; text-align: left; }
-    .igi-open-btn {
-      background: var(--blue);
-      color: white;
-      border: none;
-      border-radius: 8px;
-      padding: 6px 12px;
+    /* ── OCR 로딩 배너 ── */
+    .ocr-banner {
+      display: none;
+      margin: 8px 16px 0;
+      background: #FFF9C4;
+      border: 1px solid #F0C040;
+      border-radius: 10px;
+      padding: 10px 14px;
       font-size: 13px;
-      cursor: pointer;
-      white-space: nowrap;
+      color: #6B5900;
+      gap: 8px;
+      align-items: center;
+    }
+    .ocr-banner.show { display: flex; }
+    .ocr-spinner {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(0,0,0,0.15);
+      border-top-color: #6B5900;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
       flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .ocr-result-tag {
+      display: inline-block;
+      font-size: 11px;
+      background: #E8F5E9;
+      color: #2E7D32;
+      border-radius: 4px;
+      padding: 1px 5px;
+      margin-left: 4px;
+      vertical-align: middle;
     }
 
     /* ── 이미지 업로드 ── */
@@ -384,17 +401,11 @@
 
   <div class="field">
     <label>IGI 번호①</label>
-    <div class="igi-row">
-      <input type="text" id="igi_number" placeholder="예: 639410123" inputmode="numeric">
-      <button class="igi-open-btn" onclick="openIgi(1)">열기</button>
-    </div>
+    <input type="text" id="igi_number" placeholder="예: 639410123" inputmode="numeric">
   </div>
   <div class="field">
     <label>IGI 번호②</label>
-    <div class="igi-row">
-      <input type="text" id="igi_number2" placeholder="귀걸이 등 2개일 때" inputmode="numeric">
-      <button class="igi-open-btn" onclick="openIgi(2)">열기</button>
-    </div>
+    <input type="text" id="igi_number2" placeholder="귀걸이 등 2개일 때" inputmode="numeric">
   </div>
 </div>
 
@@ -418,8 +429,8 @@
     <div class="slot-label">감정서 ②</div>
   </div>
 </div>
-<input type="file" id="file-cert1" accept="image/*,application/pdf" capture="environment" onchange="previewSlot('cert1',this,0)">
-<input type="file" id="file-cert2" accept="image/*,application/pdf" capture="environment" onchange="previewSlot('cert2',this,1)">
+<input type="file" id="file-cert1" accept="image/*" onchange="previewSlot('cert1',this,0)">
+<input type="file" id="file-cert2" accept="image/*" onchange="previewSlot('cert2',this,1)">
 
 <!-- ── 이미지: 영수증 + 주문서 ── -->
 <div class="upload-label">영수증 / 주문서</div>
@@ -433,8 +444,14 @@
     <div class="slot-label">주문서</div>
   </div>
 </div>
-<input type="file" id="file-receipt" accept="image/*" capture="environment" onchange="previewSlot('receipt',this,2)">
-<input type="file" id="file-order"   accept="image/*" capture="environment" onchange="previewSlot('order',this,3)">
+<input type="file" id="file-receipt" accept="image/*" onchange="previewSlot('receipt',this,2)">
+<input type="file" id="file-order"   accept="image/*" onchange="previewSlot('order',this,3)">
+
+<!-- ── OCR 상태 배너 ── -->
+<div class="ocr-banner" id="ocr-banner">
+  <div class="ocr-spinner" id="ocr-spinner"></div>
+  <span id="ocr-msg">주문서 인식 중...</span>
+</div>
 
 <!-- ── 제출 ── -->
 <div class="submit-wrap">
@@ -472,6 +489,7 @@
   <button class="success-new-btn" onclick="resetForm()">새 거래 입력</button>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script>
 // ─────────────────────────────────────────
 // 금액 계산
@@ -484,15 +502,6 @@ function calcTotal() {
 }
 
 // ─────────────────────────────────────────
-// IGI 열기
-// ─────────────────────────────────────────
-function openIgi(n) {
-  const num = document.getElementById(n === 2 ? 'igi_number2' : 'igi_number').value.trim();
-  if (!num) { alert('IGI 번호를 먼저 입력해주세요.'); return; }
-  window.open('https://api.igi.org/viewpdf.php?r=' + num, '_blank');
-}
-
-// ─────────────────────────────────────────
 // 이미지 미리보기
 // ─────────────────────────────────────────
 const slots = [null, null, null, null]; // cert1, cert2, receipt, order
@@ -502,22 +511,151 @@ function previewSlot(fieldName, input, slotIdx) {
   if (!file) return;
   slots[slotIdx] = file;
 
-  const areas = ['cert-area', 'cert-area', null, null];
-  // 슬롯 요소 찾기
   const allSlots = document.querySelectorAll('.upload-slot');
   const slotEl = allSlots[slotIdx];
 
-  if (file.type.startsWith('image/')) {
-    const reader = new FileReader();
-    reader.onload = e => {
-      slotEl.innerHTML = `<img class="preview-img" src="${e.target.result}"><div class="check-badge">✓</div>`;
-      slotEl.classList.add('has-img');
-    };
-    reader.readAsDataURL(file);
-  } else {
-    slotEl.innerHTML = `<div class="slot-icon">📄</div><div class="slot-label" style="color:#34C759">✓ ${file.name.slice(0,14)}</div>`;
+  const reader = new FileReader();
+  reader.onload = e => {
+    slotEl.innerHTML = `<img class="preview-img" src="${e.target.result}"><div class="check-badge">✓</div>`;
     slotEl.classList.add('has-img');
+    // 주문서(slotIdx=3)인 경우 OCR 실행
+    if (slotIdx === 3) runOcr(file);
+  };
+  reader.readAsDataURL(file);
+}
+
+// ─────────────────────────────────────────
+// OCR (Tesseract.js) — 주문서 자동 입력
+// ─────────────────────────────────────────
+let tesseractReady = false;
+let tesseractWorker = null;
+
+async function initTesseract() {
+  if (tesseractReady) return;
+  try {
+    tesseractWorker = await Tesseract.createWorker('kor+eng', 1, {
+      workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/worker.min.js',
+      langPath: 'https://tessdata.projectnaptha.com/4.0.0',
+      corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5/tesseract-core-simd-lstm.wasm.js',
+    });
+    tesseractReady = true;
+  } catch(e) {
+    console.warn('Tesseract 초기화 실패', e);
   }
+}
+
+async function runOcr(file) {
+  const banner  = document.getElementById('ocr-banner');
+  const spinner = document.getElementById('ocr-spinner');
+  const msg     = document.getElementById('ocr-msg');
+  banner.classList.add('show');
+  msg.textContent = '주문서 인식 중...';
+  spinner.style.display = 'block';
+
+  try {
+    await initTesseract();
+    if (!tesseractWorker) throw new Error('worker 없음');
+
+    const { data: { text } } = await tesseractWorker.recognize(file);
+    const filled = parseOrderText(text);
+
+    spinner.style.display = 'none';
+    if (filled.length > 0) {
+      msg.innerHTML = `✅ 자동입력 완료: ${filled.join(', ')} <span style="font-size:11px; color:#888;">(확인 후 수정해주세요)</span>`;
+    } else {
+      msg.textContent = '⚠️ 자동인식 실패 — 직접 입력해주세요.';
+    }
+  } catch(e) {
+    spinner.style.display = 'none';
+    msg.textContent = '⚠️ OCR 오류 — 직접 입력해주세요.';
+    console.warn('OCR 오류', e);
+  }
+}
+
+function parseOrderText(text) {
+  const filled = [];
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+
+  // 숫자 추출 헬퍼 (콤마/공백 제거)
+  function extractNum(str) {
+    const m = str.replace(/[,\s]/g, '').match(/\d{4,}/);
+    return m ? parseInt(m[0]) : null;
+  }
+
+  // 고객명 탐색: "고객명", "고객" 다음 줄 또는 같은 줄 뒤
+  for (let i = 0; i < lines.length; i++) {
+    const l = lines[i];
+    if (/고객명|고객|성함/.test(l)) {
+      const nameMatch = l.replace(/고객명|고객|성함|[:：\s]/g, '').match(/[가-힣]{2,4}/);
+      if (nameMatch) {
+        setIfEmpty('customer_name', nameMatch[0]);
+        filled.push('고객명');
+        break;
+      }
+      // 다음 줄에 있는 경우
+      if (i + 1 < lines.length) {
+        const nextMatch = lines[i+1].match(/[가-힣]{2,4}/);
+        if (nextMatch) {
+          setIfEmpty('customer_name', nextMatch[0]);
+          filled.push('고객명');
+          break;
+        }
+      }
+    }
+  }
+
+  // 주문번호 탐색: 날짜형 패턴 or "주문"
+  for (const l of lines) {
+    const orderMatch = l.match(/\d{8}[-\s]\d{4,}/);
+    if (orderMatch) {
+      setIfEmpty('order_number', orderMatch[0].replace(/\s/, '-'));
+      filled.push('주문번호');
+      break;
+    }
+  }
+
+  // 금액 탐색: "나석", "다이아", "석가" → diamond_amount
+  for (const l of lines) {
+    if (/나석|다이아|석가|다이야/.test(l)) {
+      const n = extractNum(l);
+      if (n && n > 10000) {
+        setIfEmpty('diamond_amount', n);
+        calcTotal();
+        filled.push('다이아나석 금액');
+        break;
+      }
+    }
+  }
+
+  // 세팅비 탐색
+  for (const l of lines) {
+    if (/세팅|setting/.test(l)) {
+      const n = extractNum(l);
+      if (n && n > 1000) {
+        setIfEmpty('setting_fee', n);
+        calcTotal();
+        filled.push('세팅비');
+        break;
+      }
+    }
+  }
+
+  // 등급/유형: ct 패턴 (예: 1.04ct D VVS2)
+  for (const l of lines) {
+    const gradeMatch = l.match(/[\d.]+\s*ct[^\n]*/i);
+    if (gradeMatch) {
+      setIfEmpty('grade', gradeMatch[0].trim());
+      filled.push('등급');
+      break;
+    }
+  }
+
+  return filled;
+}
+
+function setIfEmpty(id, value) {
+  const el = document.getElementById(id);
+  if (el && !el.value) el.value = value;
 }
 
 // ─────────────────────────────────────────
