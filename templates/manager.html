@@ -128,6 +128,52 @@
     .memo-modal .modal { max-width: 400px; }
     .memo-text { font-size: 15px; line-height: 1.6; color: var(--text); white-space: pre-wrap; }
 
+    /* ── 탭 바 ── */
+    .tab-bar {
+      display: flex; gap: 0;
+      background: var(--card); border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+    }
+    .tab-btn {
+      padding: 10px 20px; border: none; background: none;
+      font-size: 14px; font-weight: 600; font-family: inherit;
+      color: var(--sub); cursor: pointer; border-bottom: 2px solid transparent;
+      transition: color .15s, border-color .15s; margin-bottom: -1px;
+    }
+    .tab-btn.active { color: var(--blue); border-bottom-color: var(--blue); }
+
+    /* 삭제 버튼 */
+    .del-btn {
+      background: none; border: none; cursor: pointer; font-size: 15px;
+      padding: 2px 6px; border-radius: 4px; color: #ccc; transition: color .15s;
+    }
+    .del-btn:hover { color: var(--red); }
+
+    /* 휴지통 잔여일 뱃지 */
+    .days-badge {
+      display: inline-block; font-size: 11px; font-weight: 700;
+      padding: 2px 7px; border-radius: 20px; white-space: nowrap;
+    }
+    .days-badge.d1 { background: #FFE5E5; color: var(--red); }
+    .days-badge.d2 { background: #FFF3CD; color: #856404; }
+    .days-badge.d3 { background: #E8F5E9; color: #2E7D32; }
+
+    /* 복원 버튼 */
+    .restore-btn {
+      padding: 4px 12px; border: 1px solid var(--green); border-radius: 6px;
+      background: none; color: var(--green); font-size: 12px; font-weight: 700;
+      font-family: inherit; cursor: pointer;
+    }
+    .restore-btn:hover { background: var(--green); color: white; }
+
+    /* 로그아웃 버튼 */
+    .logout-btn {
+      padding: 6px 14px; border: 1px solid var(--border); border-radius: 8px;
+      background: none; color: var(--sub); font-size: 13px; font-weight: 600;
+      font-family: inherit; cursor: pointer;
+    }
+    .logout-btn:hover { border-color: var(--red); color: var(--red); }
+
     /* ── IMAGE LIGHTBOX ── */
     .lightbox {
       display: none; position: fixed; inset: 0;
@@ -159,6 +205,13 @@
   <button class="header-btn btn-pdf" id="pdf-btn" disabled onclick="openPdf()">
     📥 PDF 다운로드
   </button>
+  <button class="logout-btn" onclick="location.href='/manager-logout'">로그아웃</button>
+</div>
+
+<!-- 탭 바 -->
+<div class="tab-bar">
+  <button class="tab-btn active" id="tab-active" onclick="switchTab('active')">활성 목록</button>
+  <button class="tab-btn" id="tab-trash" onclick="switchTab('trash')">🗑 휴지통</button>
 </div>
 
 <!-- SUMMARY -->
@@ -184,30 +237,56 @@
   </div>
 </div>
 
-<!-- TABLE -->
-<div class="table-wrap">
-  <table id="tx-table">
-    <thead>
-      <tr>
-        <th style="width:36px"></th>
-        <th>날짜</th>
-        <th>점포</th>
-        <th>고객명</th>
-        <th>등급/유형</th>
-        <th class="num">다이아나석</th>
-        <th class="num">세팅비</th>
-        <th class="num">합계</th>
-        <th>감정서</th>
-        <th>영수증</th>
-        <th>주문서</th>
-        <th>메모</th>
-        <th>수정</th>
-      </tr>
-    </thead>
-    <tbody id="tx-body">
-      <tr><td colspan="13" class="empty">데이터를 불러오는 중...</td></tr>
-    </tbody>
-  </table>
+<!-- 활성 목록 -->
+<div id="view-active">
+  <div class="table-wrap">
+    <table id="tx-table">
+      <thead>
+        <tr>
+          <th style="width:36px"></th>
+          <th>날짜</th>
+          <th>점포</th>
+          <th>고객명</th>
+          <th>등급/유형</th>
+          <th class="num">다이아나석</th>
+          <th class="num">세팅비</th>
+          <th class="num">합계</th>
+          <th>감정서</th>
+          <th>영수증</th>
+          <th>주문서</th>
+          <th>메모</th>
+          <th>수정</th>
+          <th>삭제</th>
+        </tr>
+      </thead>
+      <tbody id="tx-body">
+        <tr><td colspan="14" class="empty">데이터를 불러오는 중...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- 휴지통 -->
+<div id="view-trash" style="display:none">
+  <div class="table-wrap">
+    <table id="trash-table">
+      <thead>
+        <tr>
+          <th>날짜</th>
+          <th>점포</th>
+          <th>고객명</th>
+          <th>등급/유형</th>
+          <th class="num">합계</th>
+          <th>삭제일</th>
+          <th>잔여</th>
+          <th>복원</th>
+        </tr>
+      </thead>
+      <tbody id="trash-body">
+        <tr><td colspan="8" class="empty">휴지통이 비어있습니다.</td></tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 
 <!-- ── 편집 모달 ── -->
@@ -383,6 +462,9 @@ function render() {
       <td class="center">
         <button class="edit-btn" onclick='openEditModal(${JSON.stringify(tx)})'>✏️</button>
       </td>
+      <td class="center">
+        <button class="del-btn" onclick="deleteTransaction(${tx.id},'${esc(tx.customer_name||'')}')" title="휴지통으로 이동">🗑</button>
+      </td>
     `;
     tbody.appendChild(tr);
   });
@@ -515,6 +597,89 @@ function openLightbox(src) {
 }
 function closeLightbox() {
   document.getElementById('lightbox').classList.remove('open');
+}
+
+// ─────────────────────────────────────────
+// 탭 전환
+// ─────────────────────────────────────────
+let currentTab = 'active';
+
+function switchTab(tab) {
+  currentTab = tab;
+  document.getElementById('tab-active').classList.toggle('active', tab === 'active');
+  document.getElementById('tab-trash').classList.toggle('active', tab === 'trash');
+  document.getElementById('view-active').style.display = tab === 'active' ? '' : 'none';
+  document.getElementById('view-trash').style.display  = tab === 'trash'  ? '' : 'none';
+  if (tab === 'trash') loadTrash();
+}
+
+// ─────────────────────────────────────────
+// 소프트 삭제 (휴지통으로 이동)
+// ─────────────────────────────────────────
+async function deleteTransaction(id, name) {
+  const label = name ? `"${name}"` : `#${id}`;
+  if (!confirm(`${label} 거래를 휴지통으로 이동하시겠습니까?\n(3일 후 자동 영구삭제)`)) return;
+  const res  = await fetch(`/api/transactions/${id}`, { method: 'DELETE' });
+  const data = await res.json();
+  if (data.success) {
+    loadData();
+  } else {
+    alert('삭제 실패');
+  }
+}
+
+// ─────────────────────────────────────────
+// 휴지통 로드 및 렌더
+// ─────────────────────────────────────────
+async function loadTrash() {
+  const res   = await fetch('/api/trash');
+  const trash = await res.json();
+  renderTrash(trash);
+}
+
+function renderTrash(trash) {
+  const tbody = document.getElementById('trash-body');
+  tbody.innerHTML = '';
+  if (!trash.length) {
+    tbody.innerHTML = '<tr><td colspan="8" class="empty">휴지통이 비어있습니다.</td></tr>';
+    return;
+  }
+  const now = new Date();
+  trash.forEach(tx => {
+    const deletedAt  = new Date(tx.deleted_at);
+    const diffMs     = now - deletedAt;
+    const diffDays   = diffMs / (1000 * 60 * 60 * 24);
+    const remaining  = Math.max(0, Math.ceil(3 - diffDays));
+    const badgeCls   = remaining <= 1 ? 'd1' : remaining <= 2 ? 'd2' : 'd3';
+    const deletedStr = tx.deleted_at.slice(0, 10);
+
+    const tr = document.createElement('tr');
+    tr.style.opacity = '0.75';
+    tr.innerHTML = `
+      <td style="white-space:nowrap">${tx.date}</td>
+      <td style="white-space:nowrap">${tx.store}</td>
+      <td>${tx.customer_name||'-'}</td>
+      <td style="font-size:12px">${tx.grade}${tx.grade2?'<br>②&nbsp;'+tx.grade2:''}</td>
+      <td class="num">${fmt(tx.total_amount)}</td>
+      <td style="white-space:nowrap;font-size:12px;color:var(--sub)">${deletedStr}</td>
+      <td class="center"><span class="days-badge ${badgeCls}">${remaining}일 남음</span></td>
+      <td class="center">
+        <button class="restore-btn" onclick="restoreTransaction(${tx.id})">복원</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+async function restoreTransaction(id) {
+  if (!confirm('이 항목을 복원하시겠습니까?')) return;
+  const res  = await fetch(`/api/trash/${id}/restore`, { method: 'POST' });
+  const data = await res.json();
+  if (data.success) {
+    loadTrash();
+  } else {
+    alert('복원 실패');
+  }
 }
 
 // ─────────────────────────────────────────

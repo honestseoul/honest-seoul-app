@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>관리자 로그인</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, 'Apple SD Gothic Neo', sans-serif;
+      background: #F2F2F7;
+      min-height: 100dvh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .card {
+      background: white;
+      border-radius: 20px;
+      padding: 40px 32px;
+      width: 100%;
+      max-width: 360px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    }
+    .logo {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+    .logo h1 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #1C1C1E;
+    }
+    .logo p {
+      font-size: 13px;
+      color: #6C6C70;
+      margin-top: 4px;
+    }
+    .form-group {
+      margin-bottom: 16px;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #6C6C70;
+      margin-bottom: 6px;
+    }
+    input[type="password"] {
+      width: 100%;
+      padding: 14px 16px;
+      border: 1px solid #E5E5EA;
+      border-radius: 12px;
+      font-size: 16px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color .15s;
+    }
+    input[type="password"]:focus {
+      border-color: #007AFF;
+    }
+    .error-msg {
+      color: #FF3B30;
+      font-size: 13px;
+      margin-bottom: 14px;
+      text-align: center;
+    }
+    .login-btn {
+      width: 100%;
+      padding: 15px;
+      background: #007AFF;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      transition: opacity .15s;
+    }
+    .login-btn:active { opacity: .8; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">
+      <h1>마진조정 관리자</h1>
+      <p>어니스트서울 내부용</p>
+    </div>
+
+    {% if error %}
+    <div class="error-msg">비밀번호가 올바르지 않습니다.</div>
+    {% endif %}
+
+    <form method="POST" action="/manager-login">
+      <div class="form-group">
+        <label>비밀번호</label>
+        <input type="password" name="password" placeholder="비밀번호 입력"
+               autofocus autocomplete="current-password">
+      </div>
+      <button type="submit" class="login-btn">로그인</button>
+    </form>
+  </div>
+</body>
+</html>

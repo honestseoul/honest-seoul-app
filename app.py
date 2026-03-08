@@ -1,6 +1,6 @@
 import os, uuid, json, re, requests
 from datetime import datetime
-from flask import Flask, request, jsonify, render_template, send_file, abort
+from flask import Flask, request, jsonify, render_template, send_file, abort, session, redirect, url_for
 import sqlite3
 
 app = Flask(__name__)
@@ -10,9 +10,11 @@ UPLOAD_FOLDER = os.path.join(DATA_DIR, 'uploads')
 DB_PATH       = os.path.join(DATA_DIR, 'transactions.db')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-AGIT_WEBHOOK_URL  = os.environ.get('AGIT_WEBHOOK_URL', '')
-CLOVA_OCR_URL     = os.environ.get('CLOVA_OCR_URL', '')
-CLOVA_OCR_SECRET  = os.environ.get('CLOVA_OCR_SECRET', '')
+app.secret_key       = os.environ.get('SECRET_KEY', 'honest-seoul-secret-2026')
+MANAGER_PASSWORD     = os.environ.get('MANAGER_PASSWORD', 'honestseoul1')
+AGIT_WEBHOOK_URL     = os.environ.get('AGIT_WEBHOOK_URL', '')
+CLOVA_OCR_URL        = os.environ.get('CLOVA_OCR_URL', '')
+CLOVA_OCR_SECRET     = os.environ.get('CLOVA_OCR_SECRET', '')
 
 
 # ──────────────────────────────────────────────
@@ -48,9 +50,26 @@ def init_db():
                 order_file      TEXT,
                 memo            TEXT,
                 agit_posted     INTEGER DEFAULT 0,
-                created_at      TEXT    DEFAULT (datetime('now', 'localtime'))
+                created_at      TEXT    DEFAULT (datetime('now', 'localtime')),
+                deleted_at      TEXT    DEFAULT NULL
             )
         ''')
+        # 기존 테이블에 deleted_at 컬럼 마이그레이션
+        try:
+            conn.execute('ALTER TABLE transactions ADD COLUMN deleted_at TEXT DEFAULT NULL')
+        except Exception:
+            pass
+        conn.commit()
+
+
+def cleanup_trash():
+    """3일 지난 휴지통 항목 영구 삭제"""
+    with get_db() as conn:
+        conn.execute("""
+            DELETE FROM transactions
+            WHERE deleted_at IS NOT NULL
+            AND datetime(deleted_at) < datetime('now', '-3 days', 'localtime')
+        """)
         conn.commit()
 
 
@@ -103,8 +122,25 @@ def index():
 def store():
     return render_template('store.html')
 
+@app.route('/manager-login', methods=['GET', 'POST'])
+def manager_login():
+    error = False
+    if request.method == 'POST':
+        if request.form.get('password') == MANAGER_PASSWORD:
+            session['manager_auth'] = True
+            return redirect(url_for('manager'))
+        error = True
+    return render_template('manager_login.html', error=error)
+
+@app.route('/manager-logout')
+def manager_logout():
+    session.pop('manager_auth', None)
+    return redirect(url_for('manager_login'))
+
 @app.route('/manager')
 def manager():
+    if not session.get('manager_auth'):
+        return redirect(url_for('manager_login'))
     return render_template('manager.html')
 
 @app.route('/print')
@@ -162,18 +198,52 @@ def create_transaction():
 # ──────────────────────────────────────────────
 @app.route('/api/transactions', methods=['GET'])
 def get_transactions():
+    cleanup_trash()
     month = request.args.get('month', '')   # e.g. '2026-03'
     with get_db() as conn:
         if month:
             rows = conn.execute(
-                "SELECT * FROM transactions WHERE date LIKE ? ORDER BY date DESC",
+                "SELECT * FROM transactions WHERE deleted_at IS NULL AND date LIKE ? ORDER BY date DESC",
                 (f'{month.replace("-", ".")}%',)
             ).fetchall()
         else:
             rows = conn.execute(
-                "SELECT * FROM transactions ORDER BY date DESC"
+                "SELECT * FROM transactions WHERE deleted_at IS NULL ORDER BY date DESC"
             ).fetchall()
     return jsonify([dict(r) for r in rows])
+
+
+@app.route('/api/transactions/<int:tx_id>', methods=['DELETE'])
+def delete_transaction(tx_id):
+    """소프트 삭제 — 휴지통으로 이동"""
+    with get_db() as conn:
+        conn.execute(
+            "UPDATE transactions SET deleted_at = datetime('now', 'localtime') WHERE id = ?",
+            (tx_id,)
+        )
+        conn.commit()
+    return jsonify({'success': True})
+
+
+@app.route('/api/trash', methods=['GET'])
+def get_trash():
+    cleanup_trash()
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT * FROM transactions WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC"
+        ).fetchall()
+    return jsonify([dict(r) for r in rows])
+
+
+@app.route('/api/trash/<int:tx_id>/restore', methods=['POST'])
+def restore_transaction(tx_id):
+    with get_db() as conn:
+        conn.execute(
+            "UPDATE transactions SET deleted_at = NULL WHERE id = ?",
+            (tx_id,)
+        )
+        conn.commit()
+    return jsonify({'success': True})
 
 
 # ──────────────────────────────────────────────
