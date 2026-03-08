@@ -344,7 +344,6 @@
     <div class="upload-slot" id="slot-cert1" onclick="document.getElementById('file-cert1').click()">
       <div class="slot-icon">📄</div>
       <div class="slot-label">감정서 ①</div>
-      <div class="slot-hint">업로드 시 등급·번호<br>자동 인식</div>
     </div>
     <div class="upload-slot" id="slot-cert2" onclick="document.getElementById('file-cert2').click()">
       <div class="slot-icon">📄</div>
@@ -363,7 +362,6 @@
     <div class="upload-slot" id="slot-order" onclick="document.getElementById('file-order').click()">
       <div class="slot-icon">📋</div>
       <div class="slot-label">주문서</div>
-      <div class="slot-hint">업로드 시 날짜·고객명·<br>주문번호 자동 인식</div>
     </div>
   </div>
 
@@ -372,12 +370,6 @@
   <input type="file" id="file-cert2"   accept="image/*" onchange="onFileSelect(this, 'cert2')">
   <input type="file" id="file-receipt" accept="image/*" onchange="onFileSelect(this, 'receipt')">
   <input type="file" id="file-order"   accept="image/*" onchange="onFileSelect(this, 'order')">
-
-  <!-- OCR 배너 -->
-  <div class="ocr-banner" id="ocr-banner">
-    <div class="ocr-spinner" id="ocr-spinner"></div>
-    <span id="ocr-msg">이미지 인식 중...</span>
-  </div>
 
   <!-- 다음 단계 버튼 -->
   <div class="submit-wrap">
@@ -560,12 +552,8 @@ function onFileSelect(input, type) {
   const reader = new FileReader();
   reader.onload = e => {
     slot.innerHTML = `<img class="preview-img" src="${e.target.result}">
-                      <div class="check-badge">✓</div>
-                      <div class="ocr-badge" id="ocr-badge-${type}">인식 대기중</div>`;
+                      <div class="check-badge">✓</div>`;
     slot.classList.add('has-img');
-    if (type === 'cert1' || type === 'cert2' || type === 'order') {
-      runOcr(file, type);
-    }
   };
   reader.readAsDataURL(file);
 }
@@ -814,10 +802,10 @@ function resetAll() {
   });
   // 슬롯 초기화
   const slotDefs = [
-    ['slot-cert1',   '📄', '감정서 ①',   '업로드 시 등급·번호<br>자동 인식'],
+    ['slot-cert1',   '📄', '감정서 ①',   ''],
     ['slot-cert2',   '📄', '감정서 ②',   '귀걸이 등<br>2개일 때'],
     ['slot-receipt', '🧾', '고객 영수증', ''],
-    ['slot-order',   '📋', '주문서',      '업로드 시 날짜·고객명·<br>주문번호 자동 인식'],
+    ['slot-order',   '📋', '주문서',      ''],
   ];
   slotDefs.forEach(([id, icon, label, hint]) => {
     const s = document.getElementById(id);
