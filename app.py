@@ -1,5 +1,5 @@
 import os, uuid, json, re, requests
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask import Flask, request, jsonify, render_template, send_file, abort, session, redirect, url_for
 import sqlite3
 
@@ -10,8 +10,9 @@ UPLOAD_FOLDER = os.path.join(DATA_DIR, 'uploads')
 DB_PATH       = os.path.join(DATA_DIR, 'transactions.db')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-app.secret_key       = os.environ.get('SECRET_KEY', 'honest-seoul-secret-2026')
-MANAGER_PASSWORD     = os.environ.get('MANAGER_PASSWORD', 'honestseoul1')
+app.secret_key                  = os.environ.get('SECRET_KEY', 'honest-seoul-secret-2026')
+app.permanent_session_lifetime  = timedelta(hours=6)
+MANAGER_PASSWORD                = os.environ.get('MANAGER_PASSWORD', 'honestseoul1')
 AGIT_WEBHOOK_URL     = os.environ.get('AGIT_WEBHOOK_URL', '')
 CLOVA_OCR_URL        = os.environ.get('CLOVA_OCR_URL', '')
 CLOVA_OCR_SECRET     = os.environ.get('CLOVA_OCR_SECRET', '')
@@ -127,6 +128,7 @@ def manager_login():
     error = False
     if request.method == 'POST':
         if request.form.get('password') == MANAGER_PASSWORD:
+            session.permanent = True
             session['manager_auth'] = True
             return redirect(url_for('manager'))
         error = True
