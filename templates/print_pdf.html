@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>어니스트서울 마진조정 의뢰서</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Apple SD Gothic Neo', '맑은 고딕', 'Noto Sans KR', sans-serif;
+      background: #f0f0f0;
+      padding: 24px;
+      font-size: 13px;
+      color: #111;
+    }
+
+    /* 로딩 / 에러 화면 */
+    #loading-screen {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      z-index: 9999;
+      color: white;
+    }
+    #loading-screen .spinner {
+      width: 44px; height: 44px;
+      border: 4px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #loading-screen .msg { font-size: 15px; font-weight: 600; }
+    #loading-screen .sub { font-size: 12px; opacity: 0.75; }
+
+    /* 인쇄 제어 버튼 바 */
+    #ctrl-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    #ctrl-bar button {
+      padding: 10px 22px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    #btn-print {
+      background: #1a1a1a;
+      color: white;
+    }
+    #btn-print:hover { background: #000; }
+    #ctrl-bar .hint {
+      font-size: 12px;
+      color: #777;
+    }
+    #doc-count {
+      font-size: 13px;
+      color: #555;
+      margin-left: auto;
+    }
+
+    /* ===== 개별 문서 페이지 ===== */
+    .doc-page {
+      background: white;
+      width: 210mm;
+      min-height: 297mm;
+      margin: 0 auto 28px;
+      padding: 16mm 14mm 14mm;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.12);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .doc-title-wrap {
+      text-align: center;
+      margin-bottom: 14px;
+    }
+    .doc-title {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      color: #111;
+    }
+
+    /* 메인 테이블 */
+    .doc-table {
+      width: 100%;
+      border-collapse: collapse;
+      flex: 1;
+    }
+    .doc-table td {
+      border: 1px solid #555;
+      padding: 7px 10px;
+      vertical-align: middle;
+      line-height: 1.45;
+    }
+    .lbl {
+      background: #f0f0f0;
+      font-weight: 700;
+      text-align: center;
+      white-space: nowrap;
+      color: #222;
+      font-size: 12px;
+    }
+    .val {
+      text-align: center;
+      font-size: 13px;
+    }
+    .val.num {
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    /* 직인칸 */
+    .seal-cell {
+      height: 64px;
+      text-align: center;
+      vertical-align: middle;
+      color: #ccc;
+      font-size: 11px;
+    }
+
+    /* 이미지 셀 */
+    .img-cell {
+      padding: 5px;
+      text-align: center;
+      vertical-align: middle;
+      height: 230px;
+    }
+    .img-cell-tall {
+      padding: 5px;
+      text-align: center;
+      vertical-align: middle;
+      height: 280px;
+    }
+    .img-inner {
+      display: flex;
+      gap: 5px;
+      height: 100%;
+      align-items: center;
+      justify-content: center;
+    }
+    .img-inner img {
+      flex: 1;
+      max-width: 100%;
+      max-height: 220px;
+      object-fit: contain;
+      display: block;
+    }
+    .img-cell-tall .img-inner img {
+      max-height: 270px;
+    }
+    .img-empty {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ccc;
+      font-size: 12px;
+      border: 1px dashed #e0e0e0;
+      border-radius: 4px;
+    }
+    /* PDF 파일인 경우 안내 */
+    .pdf-link-cell {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      flex-direction: column;
+      gap: 6px;
+      color: #555;
+      font-size: 12px;
+    }
+    .pdf-link-cell a {
+      color: #007AFF;
+      text-decoration: underline;
+    }
+
+    /* ===== 인쇄 전용 스타일 ===== */
+    @media print {
+      @page {
+        size: A4;
+        margin: 0;
+      }
+      body {
+        background: white;
+        padding: 0;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      #ctrl-bar,
+      #loading-screen { display: none !important; }
+
+      .doc-page {
+        width: 210mm;
+        min-height: 297mm;
+        margin: 0;
+        padding: 14mm 12mm 12mm;
+        box-shadow: none;
+        page-break-after: always;
+        break-after: page;
+      }
+      .doc-page:last-child {
+        page-break-after: auto;
+        break-after: auto;
+      }
+      .doc-title { font-size: 18px; }
+      .doc-table td { font-size: 11px; padding: 5px 8px; }
+      .img-cell { height: 200px; }
+      .img-cell-tall { height: 240px; }
+      .img-inner img { max-height: 190px; }
+      .img-cell-tall .img-inner img { max-height: 230px; }
+      .lbl { font-size: 11px; }
+      .val { font-size: 12px; }
+      .val.num { font-size: 13px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- 로딩 오버레이 -->
+<div id="loading-screen">
+  <div class="spinner"></div>
+  <div class="msg" id="loading-msg">거래 데이터를 불러오는 중...</div>
+  <div class="sub" id="loading-sub"></div>
+</div>
+
+<!-- 제어 바 -->
+<div id="ctrl-bar" style="display:none">
+  <button id="btn-print" onclick="window.print()">🖨&nbsp; PDF로 저장</button>
+  <div class="hint">Chrome 인쇄 창 → 대상: <b>"PDF로 저장"</b> / 용지: A4 / 여백: 없음</div>
+  <div id="doc-count"></div>
+</div>
+
+<!-- 문서 컨테이너 -->
+<div id="docs-container"></div>
+
+<script>
+  // ── 유틸 ──────────────────────────────────────────
+  function fmt(n) {
+    const num = parseInt(n);
+    if (!num || isNaN(num)) return '-';
+    return num.toLocaleString('ko-KR') + '원';
+  }
+
+  function isImg(filename) {
+    if (!filename) return false;
+    const ext = filename.split('.').pop().toLowerCase();
+    return ['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(ext);
+  }
+
+  function isPdf(filename) {
+    if (!filename) return false;
+    return filename.split('.').pop().toLowerCase() === 'pdf';
+  }
+
+  // 이미지 src 생성 (서버 업로드 경로)
+  function imgSrc(filename) {
+    return `/uploads/${filename}`;
+  }
+
+  // ── 이미지 로드 트래킹 ────────────────────────────
+  let totalImgs = 0;
+  let loadedImgs = 0;
+  let printReady = false;
+
+  function trackImg(el) {
+    totalImgs++;
+    const done = () => {
+      loadedImgs++;
+      updateLoadingProgress();
+    };
+    if (el.complete) { done(); }
+    else {
+      el.addEventListener('load', done);
+      el.addEventListener('error', done);   // 에러도 완료로 처리
+    }
+  }
+
+  function updateLoadingProgress() {
+    document.getElementById('loading-sub').textContent =
+      `이미지 ${loadedImgs} / ${totalImgs} 로드 완료`;
+    if (loadedImgs >= totalImgs && !printReady) {
+      printReady = true;
+      showDocs();
+    }
+  }
+
+  function showDocs() {
+    document.getElementById('loading-screen').style.display = 'none';
+    document.getElementById('ctrl-bar').style.display = 'flex';
+  }
+
+  // ── 단일 문서 HTML 생성 ───────────────────────────
+  function buildDocHtml(tx) {
+    const hasCert2 = !!(tx.cert2_file || tx.igi_number2);
+    const date = tx.date || '-';
+
+    // 감정서 영역
+    let certHtml = '';
+    if (tx.cert1_file && isImg(tx.cert1_file)) {
+      certHtml += `<img src="${imgSrc(tx.cert1_file)}" alt="감정서①" data-track>`;
+    } else if (tx.cert1_file && isPdf(tx.cert1_file)) {
+      certHtml += `<div class="pdf-link-cell" style="flex:1">
+        <span>📄 감정서 ① (PDF)</span>
+        <a href="${imgSrc(tx.cert1_file)}" target="_blank">열기</a>
+        <small>${tx.igi_number || ''}</small>
+      </div>`;
+    } else {
+      certHtml += `<div class="img-empty" style="flex:1">감정서 없음</div>`;
+    }
+
+    if (hasCert2) {
+      if (tx.cert2_file && isImg(tx.cert2_file)) {
+        certHtml += `<img src="${imgSrc(tx.cert2_file)}" alt="감정서②" data-track>`;
+      } else if (tx.cert2_file && isPdf(tx.cert2_file)) {
+        certHtml += `<div class="pdf-link-cell" style="flex:1">
+          <span>📄 감정서 ② (PDF)</span>
+          <a href="${imgSrc(tx.cert2_file)}" target="_blank">열기</a>
+          <small>${tx.igi_number2 || ''}</small>
+        </div>`;
+      } else {
+        certHtml += `<div class="img-empty" style="flex:1">감정서 ② 없음</div>`;
+      }
+    }
+
+    // 영수증 영역
+    let receiptHtml = '';
+    if (tx.receipt_file && isImg(tx.receipt_file)) {
+      receiptHtml = `<img src="${imgSrc(tx.receipt_file)}" alt="영수증" data-track>`;
+    } else if (tx.receipt_file && isPdf(tx.receipt_file)) {
+      receiptHtml = `<div class="pdf-link-cell">
+        <span>📄 영수증 (PDF)</span>
+        <a href="${imgSrc(tx.receipt_file)}" target="_blank">열기</a>
+      </div>`;
+    } else {
+      receiptHtml = `<div class="img-empty">영수증 없음</div>`;
+    }
+
+    // 주문서 영역
+    let orderHtml = '';
+    if (tx.order_file && isImg(tx.order_file)) {
+      orderHtml = `<img src="${imgSrc(tx.order_file)}" alt="주문서" data-track>`;
+    } else if (tx.order_file && isPdf(tx.order_file)) {
+      orderHtml = `<div class="pdf-link-cell">
+        <span>📄 주문서 (PDF)</span>
+        <a href="${imgSrc(tx.order_file)}" target="_blank">열기</a>
+      </div>`;
+    } else {
+      orderHtml = `<div class="img-empty">주문서 없음</div>`;
+    }
+
+    return `
+    <div class="doc-page">
+
+      <div class="doc-title-wrap">
+        <div class="doc-title">어니스트서울 특별 마진조정 의뢰서</div>
+      </div>
+
+      <table class="doc-table">
+
+        <!-- Row 1: 점포 + 직인 -->
+        <tr>
+          <td class="lbl" style="width:18%">해당점포</td>
+          <td class="val" style="width:30%">${tx.store || '-'}</td>
+          <td class="lbl" style="width:22%">협력업체 직인</td>
+          <td class="seal-cell" style="width:30%">※ 인감 직인 날인</td>
+        </tr>
+
+        <!-- Row 2: 금액 헤더 -->
+        <tr>
+          <td class="lbl" colspan="2" style="text-align:center">총금액</td>
+          <td class="lbl">선금</td>
+          <td class="lbl">잔금</td>
+        </tr>
+
+        <!-- Row 3: 금액 값 -->
+        <tr>
+          <td class="val num" colspan="2">${fmt(tx.total_amount)}</td>
+          <td class="val num">${fmt(tx.total_amount)}</td>
+          <td class="val num">${tx.balance && tx.balance !== '-' ? tx.balance : '-'}</td>
+        </tr>
+
+        <!-- Row 4: 거래일자 -->
+        <tr>
+          <td class="lbl">거래일자</td>
+          <td class="val">${date}</td>
+          <td class="val">${date}</td>
+          <td class="val">-</td>
+        </tr>
+
+        <!-- Row 5: 감정원 + 등급 -->
+        <tr>
+          <td class="lbl">감정원</td>
+          <td class="val">${tx.gem_lab || 'IGI'}</td>
+          <td class="lbl">등급 및 유형</td>
+          <td class="val">${tx.grade || '-'}</td>
+        </tr>
+
+        <!-- Row 6: M/G 헤더 -->
+        <tr>
+          <td class="lbl" rowspan="2">M/G조정<br>요청금액</td>
+          <td class="lbl" style="text-align:center">다이아나석</td>
+          <td class="lbl" style="text-align:center">세팅비</td>
+          <td class="lbl" style="text-align:center">합계</td>
+        </tr>
+
+        <!-- Row 7: M/G 값 -->
+        <tr>
+          <td class="val num">${fmt(tx.diamond_amount)}</td>
+          <td class="val num">${fmt(tx.setting_fee)}</td>
+          <td class="val num">${fmt(tx.total_amount)}</td>
+        </tr>
+
+        <!-- Row 8: 마진 -->
+        <tr>
+          <td class="lbl">적용마진</td>
+          <td class="val">15%</td>
+          <td class="lbl">정상 M/G</td>
+          <td class="val">-</td>
+        </tr>
+
+        <!-- Row 9: 이미지 헤더 -->
+        <tr>
+          <td class="lbl" colspan="2" style="text-align:center">감정서</td>
+          <td class="lbl" colspan="2" style="text-align:center">고객영수증</td>
+        </tr>
+
+        <!-- Row 10: 감정서 + 영수증 이미지 -->
+        <tr>
+          <td colspan="2" class="img-cell">
+            <div class="img-inner">
+              ${certHtml}
+            </div>
+          </td>
+          <td colspan="2" class="img-cell">
+            <div class="img-inner">
+              ${receiptHtml}
+            </div>
+          </td>
+        </tr>
+
+        <!-- Row 11: 주문서 헤더 -->
+        <tr>
+          <td class="lbl" colspan="4" style="text-align:center">주문서</td>
+        </tr>
+
+        <!-- Row 12: 주문서 이미지 -->
+        <tr>
+          <td colspan="4" class="img-cell-tall">
+            <div class="img-inner">
+              ${orderHtml}
+            </div>
+          </td>
+        </tr>
+
+        <!-- Row 13: 작성자 -->
+        <tr>
+          <td class="lbl">협력업체 작성자</td>
+          <td class="val">안은정</td>
+          <td class="lbl">연락처</td>
+          <td class="val">010-5543-2437</td>
+        </tr>
+
+      </table>
+    </div>
+    `;
+  }
+
+  // ── 메인 로직 ─────────────────────────────────────
+  async function main() {
+    const params = new URLSearchParams(window.location.search);
+    const idsParam = params.get('ids') || '';
+    const ids = idsParam.split(',').map(s => s.trim()).filter(Boolean);
+
+    if (ids.length === 0) {
+      document.getElementById('loading-msg').textContent = '출력할 거래가 없습니다.';
+      document.getElementById('loading-sub').textContent = '관리자 대시보드에서 거래를 선택해 주세요.';
+      setTimeout(() => { document.getElementById('loading-screen').style.display = 'none'; }, 3000);
+      return;
+    }
+
+    document.getElementById('loading-msg').textContent =
+      `거래 데이터 로딩 중... (${ids.length}건)`;
+
+    // 거래 데이터 fetch
+    const txList = [];
+    for (let i = 0; i < ids.length; i++) {
+      document.getElementById('loading-sub').textContent =
+        `${i + 1} / ${ids.length} 불러오는 중...`;
+      try {
+        const res = await fetch(`/api/transactions/${ids[i]}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const tx = await res.json();
+        txList.push(tx);
+      } catch(e) {
+        console.warn(`거래 ID ${ids[i]} 로드 실패:`, e);
+      }
+    }
+
+    if (txList.length === 0) {
+      document.getElementById('loading-msg').textContent = '거래를 불러오지 못했습니다.';
+      return;
+    }
+
+    // 문서 렌더링
+    document.getElementById('loading-msg').textContent = '문서 생성 중...';
+    document.getElementById('loading-sub').textContent = '';
+
+    const container = document.getElementById('docs-container');
+    txList.forEach(tx => {
+      const div = document.createElement('div');
+      div.innerHTML = buildDocHtml(tx);
+      container.appendChild(div);
+    });
+
+    document.getElementById('doc-count').textContent =
+      `총 ${txList.length}건의 의뢰서`;
+
+    // 이미지 트래킹 등록
+    const imgs = container.querySelectorAll('img[data-track]');
+    if (imgs.length === 0) {
+      // 이미지가 없으면 바로 표시
+      showDocs();
+    } else {
+      document.getElementById('loading-msg').textContent = '이미지 로드 중...';
+      imgs.forEach(img => trackImg(img));
+    }
+  }
+
+  main();
+</script>
+</body>
+</html>
