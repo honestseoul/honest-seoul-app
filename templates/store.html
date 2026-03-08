@@ -424,12 +424,14 @@
     <div class="section-title">금액 정보</div>
     <div class="field">
       <label>다이아나석</label>
-      <input type="number" id="diamond_amount" placeholder="0" inputmode="numeric" oninput="calcTotal()">
+      <input type="number" id="diamond_amount" placeholder="0" inputmode="numeric"
+             oninput="calcTotal()" onchange="calcTotal()">
       <span class="unit">원</span>
     </div>
     <div class="field">
       <label>세팅비</label>
-      <input type="number" id="setting_fee" placeholder="0" inputmode="numeric" oninput="calcTotal()">
+      <input type="number" id="setting_fee" placeholder="0" inputmode="numeric"
+             oninput="calcTotal()" onchange="calcTotal()">
       <span class="unit">원</span>
     </div>
     <div class="field auto-field">
@@ -826,9 +828,6 @@ function resetAll() {
   document.getElementById('total_display').value = '';
   document.getElementById('date-display').value  = '';
   selectedDate = null;
-
-  // OCR 배너 초기화
-  document.getElementById('ocr-banner').classList.remove('show');
 
   // 버튼/화면 초기화
   document.getElementById('submit-btn').disabled = false;

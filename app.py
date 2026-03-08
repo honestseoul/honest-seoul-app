@@ -105,6 +105,7 @@ def post_to_agit(tx):
         f"- 거래금액: {int(tx['total_amount']):,}원\n"
         f"- 등급①: {tx['grade']}"
         + (f"\n- 등급②: {tx['grade2']}" if tx.get('grade2') else "")
+        + f"\n\n👉 관리자 페이지: https://honest-seoul-app.onrender.com/manager"
     )
     try:
         requests.post(AGIT_WEBHOOK_URL, json={'text': text}, timeout=5)
