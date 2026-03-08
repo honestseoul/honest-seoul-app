@@ -197,7 +197,13 @@
   <h1>마진조정 의뢰서 관리</h1>
   <div class="month-picker">
     <select id="month-sel" onchange="loadData()">
-      <option value="">전체</option>
+      <option value="">전체 월</option>
+    </select>
+    <select id="store-sel" onchange="render()">
+      <option value="">전체 점포</option>
+      <option value="현대백화점 판교점">현대 판교</option>
+      <option value="롯데백화점 본점">롯데 본점</option>
+      <option value="롯데백화점 잠실점">롯데 잠실</option>
     </select>
   </div>
   <div class="sel-count">선택 <span id="sel-count-num">0</span>건</div>
@@ -423,15 +429,17 @@ async function loadData() {
 // 렌더링
 // ─────────────────────────────────────────
 function render() {
-  const tbody = document.getElementById('tx-body');
+  const tbody    = document.getElementById('tx-body');
+  const storeSel = document.getElementById('store-sel').value;
+  const filtered = storeSel ? allData.filter(tx => tx.store === storeSel) : allData;
   tbody.innerHTML = '';
 
-  if (allData.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="13" class="empty">해당 월에 거래가 없습니다.</td></tr>';
-    updateSummary(); return;
+  if (filtered.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="14" class="empty">해당 조건의 거래가 없습니다.</td></tr>';
+    updateSummary(filtered); return;
   }
 
-  allData.forEach(tx => {
+  filtered.forEach(tx => {
     const tr = document.createElement('tr');
     if (selectedIds.has(tx.id)) tr.classList.add('selected-row');
 
@@ -468,7 +476,7 @@ function render() {
     `;
     tbody.appendChild(tr);
   });
-  updateSummary();
+  updateSummary(filtered);
 }
 
 function esc(s) { return String(s||'').replace(/'/g,"&apos;").replace(/"/g,'&quot;'); }
@@ -478,7 +486,9 @@ function esc(s) { return String(s||'').replace(/'/g,"&apos;").replace(/"/g,'&quo
 // ─────────────────────────────────────────
 function toggleSelect(id, checked) {
   checked ? selectedIds.add(id) : selectedIds.delete(id);
-  updateSummary();
+  const storeSel  = document.getElementById('store-sel').value;
+  const filtered  = storeSel ? allData.filter(tx => tx.store === storeSel) : allData;
+  updateSummary(filtered);
   document.getElementById('pdf-btn').disabled = selectedIds.size === 0;
   document.getElementById('sel-count-num').textContent = selectedIds.size;
   render();
@@ -487,17 +497,20 @@ function toggleSelect(id, checked) {
 let allSelected = false;
 function toggleAll() {
   allSelected = !allSelected;
-  allData.forEach(tx => allSelected ? selectedIds.add(tx.id) : selectedIds.delete(tx.id));
+  const storeSel = document.getElementById('store-sel').value;
+  const filtered = storeSel ? allData.filter(tx => tx.store === storeSel) : allData;
+  filtered.forEach(tx => allSelected ? selectedIds.add(tx.id) : selectedIds.delete(tx.id));
   document.getElementById('pdf-btn').disabled = selectedIds.size === 0;
   document.getElementById('sel-count-num').textContent = selectedIds.size;
   render();
 }
 
-function updateSummary() {
-  const selList = allData.filter(tx => selectedIds.has(tx.id));
-  document.getElementById('s-total-cnt').textContent = allData.length;
+function updateSummary(filtered) {
+  const list    = filtered || allData;
+  const selList = list.filter(tx => selectedIds.has(tx.id));
+  document.getElementById('s-total-cnt').textContent = list.length;
   document.getElementById('s-sel-cnt').textContent   = selList.length;
-  document.getElementById('s-total-amt').textContent = fmt(allData.reduce((a,t)=>a+t.total_amount,0));
+  document.getElementById('s-total-amt').textContent = fmt(list.reduce((a,t)=>a+t.total_amount,0));
   document.getElementById('s-sel-amt').textContent   = fmt(selList.reduce((a,t)=>a+t.total_amount,0));
   document.getElementById('pdf-btn').disabled        = selList.length === 0;
   document.getElementById('sel-count-num').textContent = selList.length;
