@@ -340,7 +340,7 @@
 
   <!-- 감정서 -->
   <div class="upload-label">감정서 (IGI)</div>
-  <div style="font-size:12px;color:#888;margin:-6px 0 10px 2px;line-height:1.5">
+  <div style="font-size:12px;color:#888;margin:-6px 16px 10px 16px;line-height:1.5">
     공식몰에서 이미지를 길게 눌러 다운로드 후 업로드해주세요.<br>공식몰에 없는 경우 비워두셔도 됩니다.
   </div>
   <div class="upload-area">
@@ -445,13 +445,15 @@
     </div>
     <div class="field">
       <label>선금</label>
-      <input type="text" id="prepay" placeholder="-" value="-" inputmode="numeric"
+      <input type="text" id="prepay" placeholder="-" inputmode="numeric"
              onfocus="onPayFocus(this)" oninput="onPayInput(this)" onblur="onPayBlur(this)">
+      <span class="unit">원</span>
     </div>
     <div class="field">
       <label>잔금</label>
-      <input type="text" id="balance" placeholder="-" value="-" inputmode="numeric"
+      <input type="text" id="balance" placeholder="-" inputmode="numeric"
              onfocus="onPayFocus(this)" oninput="onPayInput(this)" onblur="onPayBlur(this)">
+      <span class="unit">원</span>
     </div>
   </div>
 
@@ -705,7 +707,7 @@ function onPayInput(input) {
 }
 function onPayBlur(input) {
   const raw = parseInt(input.value.replace(/[^0-9]/g, ''));
-  if (!raw) input.value = '-';
+  if (!raw) input.value = '';
   else input.value = raw.toLocaleString('ko-KR');
 }
 function getPayValue(id) {
@@ -862,8 +864,8 @@ function resetAll() {
     if (el) { el.value = ''; el.style.color = ''; }
   });
   document.getElementById('gem_lab').value = 'IGI';
-  document.getElementById('prepay').value  = '-';
-  document.getElementById('balance').value = '-';
+  document.getElementById('prepay').value  = '';
+  document.getElementById('balance').value = '';
   document.getElementById('total_display').value = '';
   document.getElementById('date-display').value  = '';
   selectedDate = null;
