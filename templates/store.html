@@ -440,7 +440,9 @@
     </div>
     <div class="field auto-field">
       <label>합계</label>
-      <input type="text" id="total_display" readonly placeholder="자동계산">
+      <input type="text" id="total_display" inputmode="none"
+             onfocus="this.blur()" placeholder="자동계산"
+             style="pointer-events:none">
       <span class="unit">원</span>
     </div>
     <div class="field">
