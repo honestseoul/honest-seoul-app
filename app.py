@@ -265,6 +265,59 @@ def get_transaction(tx_id):
 # ──────────────────────────────────────────────
 # API: 거래 수정 (관리자용)
 # ──────────────────────────────────────────────
+@app.route('/api/transactions/<int:tx_id>/images', methods=['POST'])
+def upload_image(tx_id):
+    """수정 모달에서 이미지 교체 업로드"""
+    field_map = {
+        'cert1':     'cert1_file',
+        'cert2':     'cert2_file',
+        'receipt':   'receipt_file',
+        'order_img': 'order_file',
+    }
+    uploaded = {}
+    for key, col in field_map.items():
+        f = request.files.get(key)
+        if f and f.filename:
+            # 기존 파일 삭제
+            row = get_db().execute(f'SELECT {col} FROM transactions WHERE id=?', (tx_id,)).fetchone()
+            if row and row[0]:
+                old_path = os.path.join(UPLOAD_FOLDER, row[0])
+                if os.path.exists(old_path):
+                    os.remove(old_path)
+            fname = save_upload(f)
+            if fname:
+                with get_db() as conn:
+                    conn.execute(f'UPDATE transactions SET {col}=? WHERE id=?', (fname, tx_id))
+                    conn.commit()
+                uploaded[key] = fname
+    if uploaded:
+        return jsonify({'success': True, 'uploaded': uploaded})
+    return jsonify({'error': '업로드된 파일 없음'}), 400
+
+
+@app.route('/api/transactions/<int:tx_id>/images/<field>', methods=['DELETE'])
+def delete_image(tx_id, field):
+    """수정 모달에서 이미지 삭제"""
+    field_map = {
+        'cert1':     'cert1_file',
+        'cert2':     'cert2_file',
+        'receipt':   'receipt_file',
+        'order_img': 'order_file',
+    }
+    col = field_map.get(field)
+    if not col:
+        return jsonify({'error': '잘못된 필드'}), 400
+    row = get_db().execute(f'SELECT {col} FROM transactions WHERE id=?', (tx_id,)).fetchone()
+    if row and row[0]:
+        old_path = os.path.join(UPLOAD_FOLDER, row[0])
+        if os.path.exists(old_path):
+            os.remove(old_path)
+    with get_db() as conn:
+        conn.execute(f'UPDATE transactions SET {col}=NULL WHERE id=?', (tx_id,))
+        conn.commit()
+    return jsonify({'success': True})
+
+
 @app.route('/api/transactions/<int:tx_id>', methods=['PATCH'])
 def update_transaction(tx_id):
     data = request.get_json()

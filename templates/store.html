@@ -425,14 +425,14 @@
     <div class="section-title">금액 정보</div>
     <div class="field">
       <label>다이아나석</label>
-      <input type="number" id="diamond_amount" placeholder="0" inputmode="numeric"
-             oninput="calcTotal()" onchange="calcTotal()">
+      <input type="text" id="diamond_amount" placeholder="0" inputmode="numeric"
+             oninput="onAmountInput(this)" onchange="onAmountInput(this)">
       <span class="unit">원</span>
     </div>
     <div class="field">
       <label>세팅비</label>
-      <input type="number" id="setting_fee" placeholder="0" inputmode="numeric"
-             oninput="calcTotal()" onchange="calcTotal()">
+      <input type="text" id="setting_fee" placeholder="0" inputmode="numeric"
+             oninput="onAmountInput(this)" onchange="onAmountInput(this)">
       <span class="unit">원</span>
     </div>
     <div class="field auto-field">
@@ -668,11 +668,22 @@ function setVal(id, val) {
 }
 
 // ─────────────────────────────────────────
-// 금액 계산
+// 금액 계산 (type="text" 기반 — 모바일 호환)
 // ─────────────────────────────────────────
+function getRawAmount(id) {
+  return parseInt(document.getElementById(id).value.replace(/[^0-9]/g, '')) || 0;
+}
+
+function onAmountInput(input) {
+  // 숫자만 허용
+  const raw = input.value.replace(/[^0-9]/g, '');
+  input.value = raw;
+  calcTotal();
+}
+
 function calcTotal() {
-  const d = parseInt(document.getElementById('diamond_amount').value) || 0;
-  const s = parseInt(document.getElementById('setting_fee').value)    || 0;
+  const d = getRawAmount('diamond_amount');
+  const s = getRawAmount('setting_fee');
   const t = d + s;
   document.getElementById('total_display').value = t > 0 ? t.toLocaleString('ko-KR') : '';
 }
@@ -746,8 +757,8 @@ function renderCal() {
 async function submitForm() {
   const date  = document.getElementById('date-display').value;
   const grade = document.getElementById('grade').value.trim();
-  const d     = parseInt(document.getElementById('diamond_amount').value) || 0;
-  const s     = parseInt(document.getElementById('setting_fee').value)    || 0;
+  const d     = getRawAmount('diamond_amount');
+  const s     = getRawAmount('setting_fee');
 
   const store = document.getElementById('store').value;
   if (!store)           { alert('점포를 선택해주세요.'); return; }

@@ -366,6 +366,10 @@
         <label>매장 메모 (PDF 미포함)</label>
         <textarea id="edit-memo" rows="3" style="resize:vertical"></textarea>
       </div>
+      <div class="modal-field full" style="border-top:1px solid var(--border);padding-top:14px;margin-top:4px">
+        <label style="font-weight:600;margin-bottom:10px;display:block">📎 첨부 이미지</label>
+        <div id="edit-images-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px"></div>
+      </div>
     </div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeEditModal()">취소</button>
@@ -545,7 +549,84 @@ function openEditModal(tx) {
   document.getElementById('edit-igi1').value    = tx.igi_number||'';
   document.getElementById('edit-igi2').value    = tx.igi_number2||'';
   document.getElementById('edit-memo').value    = tx.memo||'';
+
+  // 이미지 섹션 렌더링
+  renderEditImages(tx);
+
   document.getElementById('edit-modal').classList.add('open');
+}
+
+function renderEditImages(tx) {
+  const slots = [
+    { key: 'cert1',     col: 'cert1_file',   label: '감정서①' },
+    { key: 'cert2',     col: 'cert2_file',   label: '감정서②' },
+    { key: 'receipt',   col: 'receipt_file', label: '영수증' },
+    { key: 'order_img', col: 'order_file',   label: '주문서' },
+  ];
+  const txId = tx.id;
+  const grid = document.getElementById('edit-images-grid');
+  grid.innerHTML = '';
+  slots.forEach(({key, col, label}) => {
+    const file = tx[col];
+    const card = document.createElement('div');
+    card.style.cssText = 'border:1px solid var(--border);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:8px;background:#fafafa';
+    card.id = `img-card-${key}`;
+
+    if (file) {
+      card.innerHTML = `
+        <div style="font-size:12px;color:#888;font-weight:600">${label}</div>
+        <img src="/uploads/${file}" style="width:100%;height:90px;object-fit:cover;border-radius:6px;cursor:pointer" onclick="openLightbox('/uploads/${file}')">
+        <div style="display:flex;gap:6px">
+          <label style="flex:1;text-align:center;font-size:12px;padding:5px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:#fff">
+            교체
+            <input type="file" accept="image/*" style="display:none" onchange="replaceImage(${txId},'${key}',this)">
+          </label>
+          <button onclick="deleteEditImage(${txId},'${key}')" style="flex:1;font-size:12px;padding:5px;border:1px solid #ffb3b3;border-radius:6px;background:#fff5f5;color:#e53;cursor:pointer">삭제</button>
+        </div>`;
+    } else {
+      card.innerHTML = `
+        <div style="font-size:12px;color:#888;font-weight:600">${label}</div>
+        <div style="height:90px;display:flex;align-items:center;justify-content:center;background:#f0f0f0;border-radius:6px;color:#bbb;font-size:12px">없음</div>
+        <label style="text-align:center;font-size:12px;padding:5px;border:1px solid var(--primary);border-radius:6px;cursor:pointer;background:#fff;color:var(--primary)">
+          업로드
+          <input type="file" accept="image/*" style="display:none" onchange="replaceImage(${txId},'${key}',this)">
+        </label>`;
+    }
+    grid.appendChild(card);
+  });
+}
+
+async function deleteEditImage(txId, key) {
+  if (!confirm('이미지를 삭제하시겠습니까?')) return;
+  const res = await fetch(`/api/transactions/${txId}/images/${key}`, { method: 'DELETE' });
+  const data = await res.json();
+  if (data.success) {
+    // allData에서도 업데이트
+    const colMap = { cert1:'cert1_file', cert2:'cert2_file', receipt:'receipt_file', order_img:'order_file' };
+    const tx = allData.find(t => t.id === txId);
+    if (tx) { tx[colMap[key]] = null; renderEditImages(tx); }
+  } else {
+    alert('삭제 실패');
+  }
+}
+
+async function replaceImage(txId, key, input) {
+  const file = input.files[0];
+  if (!file) return;
+  const fd = new FormData();
+  fd.append(key, file);
+  const res = await fetch(`/api/transactions/${txId}/images`, { method: 'POST', body: fd });
+  const data = await res.json();
+  if (data.success) {
+    // allData 업데이트 후 재렌더링
+    const colMap = { cert1:'cert1_file', cert2:'cert2_file', receipt:'receipt_file', order_img:'order_file' };
+    const tx = allData.find(t => t.id === txId);
+    if (tx) { tx[colMap[key]] = data.uploaded[key]; renderEditImages(tx); }
+    // 테이블도 갱신
+    loadData();
+  } else {
+    alert('업로드 실패');
+  }
 }
 
 function closeEditModal() {
