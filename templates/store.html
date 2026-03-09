@@ -340,6 +340,9 @@
 
   <!-- 감정서 -->
   <div class="upload-label">감정서 (IGI)</div>
+  <div style="font-size:12px;color:#888;margin:-6px 0 10px 2px;line-height:1.5">
+    공식몰에서 이미지를 길게 눌러 다운로드 후 업로드해주세요.<br>공식몰에 없는 경우 비워두셔도 됩니다.
+  </div>
   <div class="upload-area">
     <div class="upload-slot" id="slot-cert1" onclick="document.getElementById('file-cert1').click()">
       <div class="slot-icon">📄</div>
@@ -442,11 +445,13 @@
     </div>
     <div class="field">
       <label>선금</label>
-      <input type="text" id="prepay" placeholder="-" value="-">
+      <input type="text" id="prepay" placeholder="-" value="-" inputmode="numeric"
+             onfocus="onPayFocus(this)" oninput="onPayInput(this)" onblur="onPayBlur(this)">
     </div>
     <div class="field">
       <label>잔금</label>
-      <input type="text" id="balance" placeholder="-" value="-">
+      <input type="text" id="balance" placeholder="-" value="-" inputmode="numeric"
+             onfocus="onPayFocus(this)" oninput="onPayInput(this)" onblur="onPayBlur(this)">
     </div>
   </div>
 
@@ -689,6 +694,26 @@ function calcTotal() {
 }
 
 // ─────────────────────────────────────────
+// 선금/잔금 포맷 (focus → 숫자만, blur → 원단위 표시 or -)
+// ─────────────────────────────────────────
+function onPayFocus(input) {
+  if (input.value === '-') input.value = '';
+  else input.value = input.value.replace(/[^0-9]/g, '');
+}
+function onPayInput(input) {
+  input.value = input.value.replace(/[^0-9]/g, '');
+}
+function onPayBlur(input) {
+  const raw = parseInt(input.value.replace(/[^0-9]/g, ''));
+  if (!raw) input.value = '-';
+  else input.value = raw.toLocaleString('ko-KR');
+}
+function getPayValue(id) {
+  const raw = parseInt(document.getElementById(id).value.replace(/[^0-9]/g, ''));
+  return raw ? String(raw) : '-';
+}
+
+// ─────────────────────────────────────────
 // 캘린더
 // ─────────────────────────────────────────
 const today  = new Date();
@@ -781,8 +806,8 @@ async function submitForm() {
   fd.append('gem_lab',        document.getElementById('gem_lab').value.trim() || 'IGI');
   fd.append('grade',          grade);
   fd.append('grade2',         document.getElementById('grade2').value.trim());
-  fd.append('prepay',         document.getElementById('prepay').value.trim() || '-');
-  fd.append('balance',        document.getElementById('balance').value.trim() || '-');
+  fd.append('prepay',         getPayValue('prepay'));
+  fd.append('balance',        getPayValue('balance'));
   fd.append('igi_number',     document.getElementById('igi_number').value.trim());
   fd.append('igi_number2',    document.getElementById('igi_number2').value.trim());
   fd.append('memo',           document.getElementById('memo').value.trim());

@@ -348,11 +348,13 @@
       </div>
       <div class="modal-field">
         <label>선금</label>
-        <input type="text" id="edit-prepay">
+        <input type="text" id="edit-prepay" inputmode="numeric"
+               onfocus="onMgrPayFocus(this)" oninput="onMgrPayInput(this)" onblur="onMgrPayBlur(this)">
       </div>
       <div class="modal-field">
         <label>잔금</label>
-        <input type="text" id="edit-balance">
+        <input type="text" id="edit-balance" inputmode="numeric"
+               onfocus="onMgrPayFocus(this)" oninput="onMgrPayInput(this)" onblur="onMgrPayBlur(this)">
       </div>
       <div class="modal-field">
         <label>IGI 번호①</label>
@@ -399,6 +401,27 @@
 let allData = [];
 let selectedIds = new Set();
 const fmt = n => parseInt(n||0).toLocaleString('ko-KR');
+
+// 선금/잔금 포맷 헬퍼
+function fmtPay(v) {
+  const raw = parseInt(String(v||'').replace(/[^0-9]/g,''));
+  return raw ? raw.toLocaleString('ko-KR') : '-';
+}
+function getMgrPayValue(id) {
+  const raw = parseInt(document.getElementById(id).value.replace(/[^0-9]/g,''));
+  return raw ? String(raw) : '-';
+}
+function onMgrPayFocus(input) {
+  if (input.value === '-') input.value = '';
+  else input.value = input.value.replace(/[^0-9]/g,'');
+}
+function onMgrPayInput(input) {
+  input.value = input.value.replace(/[^0-9]/g,'');
+}
+function onMgrPayBlur(input) {
+  const raw = parseInt(input.value.replace(/[^0-9]/g,''));
+  input.value = raw ? raw.toLocaleString('ko-KR') : '-';
+}
 
 // ─────────────────────────────────────────
 // 월 옵션 생성
@@ -544,8 +567,8 @@ function openEditModal(tx) {
   document.getElementById('edit-diamond').value = tx.diamond_amount;
   document.getElementById('edit-setting').value = tx.setting_fee;
   document.getElementById('edit-total').value   = fmt(tx.total_amount);
-  document.getElementById('edit-prepay').value  = tx.prepay||'-';
-  document.getElementById('edit-balance').value = tx.balance||'-';
+  document.getElementById('edit-prepay').value  = fmtPay(tx.prepay);
+  document.getElementById('edit-balance').value = fmtPay(tx.balance);
   document.getElementById('edit-igi1').value    = tx.igi_number||'';
   document.getElementById('edit-igi2').value    = tx.igi_number2||'';
   document.getElementById('edit-memo').value    = tx.memo||'';
@@ -651,8 +674,8 @@ async function saveEdit() {
     gem_lab:        document.getElementById('edit-gemlab').value,
     diamond_amount: parseInt(document.getElementById('edit-diamond').value)||0,
     setting_fee:    parseInt(document.getElementById('edit-setting').value)||0,
-    prepay:         document.getElementById('edit-prepay').value,
-    balance:        document.getElementById('edit-balance').value,
+    prepay:         getMgrPayValue('edit-prepay'),
+    balance:        getMgrPayValue('edit-balance'),
     igi_number:     document.getElementById('edit-igi1').value,
     igi_number2:    document.getElementById('edit-igi2').value,
     memo:           document.getElementById('edit-memo').value,
