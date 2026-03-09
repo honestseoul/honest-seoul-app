@@ -440,10 +440,10 @@
     </div>
     <div class="field auto-field">
       <label>합계</label>
-      <input type="text" id="total_display" inputmode="none"
-             onfocus="this.blur()" placeholder="자동계산"
-             style="pointer-events:none">
-      <span class="unit">원</span>
+      <div id="total_display"
+           style="flex:1;font-size:17px;font-weight:600;text-align:right;
+                  color:#C7C7CC;padding:0 4px">자동계산</div>
+      <span class="unit" style="color:#C7C7CC" id="total_unit">원</span>
     </div>
     <div class="field">
       <label>선금</label>
@@ -694,7 +694,17 @@ function calcTotal() {
   const d = getRawAmount('diamond_amount');
   const s = getRawAmount('setting_fee');
   const t = d + s;
-  document.getElementById('total_display').value = t > 0 ? t.toLocaleString('ko-KR') : '';
+  const el = document.getElementById('total_display');
+  const unit = document.getElementById('total_unit');
+  if (t > 0) {
+    el.textContent = t.toLocaleString('ko-KR');
+    el.style.color = 'var(--blue)';
+    unit.style.color = 'var(--blue)';
+  } else {
+    el.textContent = '자동계산';
+    el.style.color = '#C7C7CC';
+    unit.style.color = '#C7C7CC';
+  }
 }
 
 // ─────────────────────────────────────────
@@ -868,7 +878,10 @@ function resetAll() {
   document.getElementById('gem_lab').value = 'IGI';
   document.getElementById('prepay').value  = '';
   document.getElementById('balance').value = '';
-  document.getElementById('total_display').value = '';
+  const td = document.getElementById('total_display');
+  td.textContent = '자동계산';
+  td.style.color = '#C7C7CC';
+  document.getElementById('total_unit').style.color = '#C7C7CC';
   document.getElementById('date-display').value  = '';
   selectedDate = null;
 
